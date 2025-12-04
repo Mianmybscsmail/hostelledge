@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { supabase } from '../services/supabase';
 import { Card, Button, Input, Select } from '../components/ui/Card';
 import { Meal } from '../types';
-import { Coffee, Sun, Moon, ChefHat, Info } from 'lucide-react';
+import { Coffee, Sun, Moon, ChefHat, Info, Pencil, Trash2 } from 'lucide-react';
 import { format } from 'date-fns';
 
 interface MealsProps {
@@ -14,6 +14,7 @@ export const Meals: React.FC<MealsProps> = ({ isAdmin, canEdit }) => {
   const [meals, setMeals] = useState<Meal[]>([]);
   const [loading, setLoading] = useState(true);
   const [showAdd, setShowAdd] = useState(false);
+  const [editingId, setEditingId] = useState<string | null>(null);
   
   // Form State
   const [mealType, setMealType] = useState('Dinner');
@@ -44,7 +45,7 @@ export const Meals: React.FC<MealsProps> = ({ isAdmin, canEdit }) => {
     const numPeople = parseInt(people) || 1;
     const totalCost = parseFloat(cost) || 0;
 
-    const { error } = await supabase.from('meals').insert({
+    const payload = {
       meal_type: mealType,
       cooked,
       eaten,
@@ -52,18 +53,53 @@ export const Meals: React.FC<MealsProps> = ({ isAdmin, canEdit }) => {
       people: numPeople,
       per_person: totalCost / numPeople,
       date: new Date().toISOString()
-    });
+    };
+
+    let error;
+    if (editingId) {
+        const { error: updateError } = await supabase.from('meals').update(payload).eq('id', editingId);
+        error = updateError;
+    } else {
+        const { error: insertError } = await supabase.from('meals').insert(payload);
+        error = insertError;
+    }
 
     setSubmitting(false);
 
     if (error) alert(error.message);
     else {
-      setShowAdd(false);
-      setCooked('');
-      setEaten('');
-      setCost('');
-      setPeople('');
+      resetForm();
     }
+  };
+
+  const handleDelete = async (id: string) => {
+      if(!confirm("Delete this meal record?")) return;
+      await supabase.from('meals').delete().eq('id', id);
+  };
+
+  const startEdit = (meal: Meal) => {
+      setMealType(meal.meal_type);
+      setCooked(meal.cooked);
+      setEaten(meal.eaten);
+      setCost(meal.cost.toString());
+      setPeople(meal.people.toString());
+      setEditingId(meal.id);
+      setShowAdd(true);
+  };
+
+  const resetForm = () => {
+    setShowAdd(false);
+    setEditingId(null);
+    setCooked('');
+    setEaten('');
+    setCost('');
+    setPeople('');
+    setMealType('Dinner');
+  };
+
+  const toggleForm = () => {
+      if(showAdd) resetForm();
+      else setShowAdd(true);
   };
 
   const MealIcon = ({ type }: { type: string }) => {
@@ -79,7 +115,7 @@ export const Meals: React.FC<MealsProps> = ({ isAdmin, canEdit }) => {
       <div className="flex justify-between items-center mb-4">
         <h1 className="text-2xl font-bold text-white">Meal History</h1>
         {(isAdmin || canEdit) && (
-            <button onClick={() => setShowAdd(!showAdd)} className="text-red-500 text-sm font-medium">
+            <button onClick={toggleForm} className="text-red-500 text-sm font-medium">
             {showAdd ? 'Cancel' : '+ Add Meal'}
             </button>
         )}
@@ -87,6 +123,7 @@ export const Meals: React.FC<MealsProps> = ({ isAdmin, canEdit }) => {
 
       {showAdd && (
         <Card className="animate-in slide-in-from-top-4 mb-6 border-red-900/30">
+          <h3 className="text-white font-semibold mb-3">{editingId ? 'Edit Meal' : 'Add New Meal'}</h3>
           <form onSubmit={handleAddMeal} className="space-y-3">
             <Select value={mealType} onChange={e => setMealType(e.target.value)} label="Meal Type">
               <option value="Breakfast">Breakfast</option>
@@ -108,7 +145,7 @@ export const Meals: React.FC<MealsProps> = ({ isAdmin, canEdit }) => {
             </div>
 
             <Button type="submit" isLoading={submitting}>
-              {submitting ? 'Saving...' : 'Save Meal'}
+              {submitting ? 'Saving...' : (editingId ? 'Update Meal' : 'Save Meal')}
             </Button>
           </form>
         </Card>
@@ -130,10 +167,18 @@ export const Meals: React.FC<MealsProps> = ({ isAdmin, canEdit }) => {
                 <span className="text-zinc-500">{format(new Date(meal.date), 'MMM d, h:mm a')}</span>
               </div>
             </div>
-            {/* Hover details for desktop, tap for mobile (conceptually) */}
-            <div className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                <Info size={14} className="text-zinc-600" />
-            </div>
+            
+            {/* Actions */}
+             {(isAdmin || canEdit) && (
+                <div className="flex gap-3 absolute right-4 top-4 opacity-0 group-hover:opacity-100 transition-opacity bg-zinc-900/80 p-1 rounded backdrop-blur-sm">
+                   <button onClick={() => startEdit(meal)} className="text-zinc-400 hover:text-blue-400">
+                      <Pencil size={14} />
+                   </button>
+                   <button onClick={() => handleDelete(meal.id)} className="text-zinc-400 hover:text-red-500">
+                      <Trash2 size={14} />
+                   </button>
+                </div>
+            )}
           </div>
         ))}
         {!loading && meals.length === 0 && <div className="text-center text-zinc-600 py-10">No meals tracked this week.</div>}
