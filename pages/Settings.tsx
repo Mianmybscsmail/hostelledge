@@ -209,7 +209,7 @@ export const Settings: React.FC<SettingsProps> = ({ user, profile, isAdmin }) =>
         </div>
 
         <div className="text-center text-[10px] text-zinc-700 pt-10">
-            Version 1.0.0 • Hostel Kharcha Manager
+            Version 1.0.0 • Hostel Kharcha Manager • Created by Mian Khizar
         </div>
     </div>
   );
