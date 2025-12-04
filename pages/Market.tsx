@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { supabase } from '../services/supabase';
 import { Card, Button, Input } from '../components/ui/Card';
 import { MarketItem } from '../types';
-import { ShoppingCart, Tag } from 'lucide-react';
+import { ShoppingCart, Tag, Pencil, Trash2 } from 'lucide-react';
 import { format } from 'date-fns';
 
 interface MarketProps {
@@ -13,6 +13,7 @@ interface MarketProps {
 export const Market: React.FC<MarketProps> = ({ isAdmin, canEdit }) => {
   const [items, setItems] = useState<MarketItem[]>([]);
   const [showAdd, setShowAdd] = useState(false);
+  const [editingId, setEditingId] = useState<string | null>(null);
   
   const [itemName, setItemName] = useState('');
   const [quantity, setQuantity] = useState('');
@@ -38,7 +39,7 @@ export const Market: React.FC<MarketProps> = ({ isAdmin, canEdit }) => {
     if (!isAdmin && !canEdit) return;
 
     setSubmitting(true);
-    const { error } = await supabase.from('market_items').insert({
+    const payload = {
       item_name: itemName,
       quantity,
       cost: parseFloat(cost) || 0,
@@ -46,13 +47,49 @@ export const Market: React.FC<MarketProps> = ({ isAdmin, canEdit }) => {
       budget_per_item: parseFloat(budget) || 0,
       note,
       date: new Date().toISOString()
-    });
+    };
+
+    let error;
+    if (editingId) {
+        const { error: updateError } = await supabase.from('market_items').update(payload).eq('id', editingId);
+        error = updateError;
+    } else {
+        const { error: insertError } = await supabase.from('market_items').insert(payload);
+        error = insertError;
+    }
+
     setSubmitting(false);
 
     if (!error) {
-      setShowAdd(false);
-      setItemName(''); setQuantity(''); setCost(''); setBuyer(''); setBudget(''); setNote('');
+      resetForm();
     }
+  };
+
+  const handleDelete = async (id: string) => {
+      if(!confirm("Delete this purchase?")) return;
+      await supabase.from('market_items').delete().eq('id', id);
+  };
+
+  const startEdit = (item: MarketItem) => {
+      setItemName(item.item_name);
+      setQuantity(item.quantity);
+      setCost(item.cost.toString());
+      setBuyer(item.buyer);
+      setBudget(item.budget_per_item?.toString() || '');
+      setNote(item.note || '');
+      setEditingId(item.id);
+      setShowAdd(true);
+  };
+
+  const resetForm = () => {
+      setShowAdd(false);
+      setEditingId(null);
+      setItemName(''); setQuantity(''); setCost(''); setBuyer(''); setBudget(''); setNote('');
+  };
+
+  const toggleForm = () => {
+      if(showAdd) resetForm();
+      else setShowAdd(true);
   };
 
   return (
@@ -60,7 +97,7 @@ export const Market: React.FC<MarketProps> = ({ isAdmin, canEdit }) => {
       <div className="flex justify-between items-center mb-4">
         <h1 className="text-2xl font-bold text-white">Market & Shopping</h1>
         {(isAdmin || canEdit) && (
-             <button onClick={() => setShowAdd(!showAdd)} className="text-red-500 text-sm font-medium">
+             <button onClick={toggleForm} className="text-red-500 text-sm font-medium">
              {showAdd ? 'Cancel' : '+ Purchase'}
              </button>
         )}
@@ -68,6 +105,7 @@ export const Market: React.FC<MarketProps> = ({ isAdmin, canEdit }) => {
 
       {showAdd && (
         <Card className="animate-in slide-in-from-top-4 mb-6">
+          <h3 className="text-white font-semibold mb-3">{editingId ? 'Edit Item' : 'New Purchase'}</h3>
           <form onSubmit={handleAdd} className="space-y-3">
             <Input label="Item Name" value={itemName} onChange={e => setItemName(e.target.value)} required />
             <div className="grid grid-cols-2 gap-3">
@@ -85,7 +123,7 @@ export const Market: React.FC<MarketProps> = ({ isAdmin, canEdit }) => {
             </div>
 
             <Button type="submit" isLoading={submitting}>
-              {submitting ? 'Saving...' : 'Add Item'}
+              {submitting ? 'Saving...' : (editingId ? 'Update Item' : 'Add Item')}
             </Button>
           </form>
         </Card>
@@ -93,7 +131,7 @@ export const Market: React.FC<MarketProps> = ({ isAdmin, canEdit }) => {
 
       <div className="grid gap-3">
         {items.map((item) => (
-          <div key={item.id} className="bg-zinc-900 p-4 rounded-xl border border-zinc-800 flex flex-col gap-2">
+          <div key={item.id} className="bg-zinc-900 p-4 rounded-xl border border-zinc-800 flex flex-col gap-2 relative group">
             <div className="flex justify-between items-start">
               <div className="flex items-center gap-3">
                 <div className="bg-purple-500/10 p-2 rounded-lg text-purple-500">
@@ -127,6 +165,18 @@ export const Market: React.FC<MarketProps> = ({ isAdmin, canEdit }) => {
             <div className="text-[10px] text-zinc-600 text-right mt-1">
                 {format(new Date(item.date), 'MMM d, yyyy')}
             </div>
+
+            {/* Actions */}
+            {(isAdmin || canEdit) && (
+                <div className="flex gap-3 absolute right-4 bottom-4 opacity-0 group-hover:opacity-100 transition-opacity bg-zinc-900/90 p-1 rounded backdrop-blur-sm">
+                   <button onClick={() => startEdit(item)} className="text-zinc-400 hover:text-blue-400">
+                      <Pencil size={14} />
+                   </button>
+                   <button onClick={() => handleDelete(item.id)} className="text-zinc-400 hover:text-red-500">
+                      <Trash2 size={14} />
+                   </button>
+                </div>
+            )}
           </div>
         ))}
         {items.length === 0 && <div className="text-center text-zinc-600 py-8">No market purchases yet.</div>}
