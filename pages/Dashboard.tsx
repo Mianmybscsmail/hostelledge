@@ -73,7 +73,12 @@ export const Dashboard = () => {
       // Combine detailed meals + quick add meal expenses
       const finalFoodTotal = mealsSum + expenseMeal;
       
-      const totalSpent = totalExpensesRaw + marketItemsSum + mealsSum;
+      // Total Spent Calculation:
+      // EXCLUDES marketItemsSum as requested. 
+      // It includes Quick Expenses (Misc + Food + Quick Market) + Detailed Meals.
+      // If you want to strictly exclude ALL market expenses (even quick ones), subtract expenseMarket.
+      // Based on prompt "don't count or add the market items amount", we exclude the marketItemsSum from the table.
+      const totalSpent = totalExpensesRaw + mealsSum; 
       
       setStats({
         totalWeekly,
@@ -86,6 +91,7 @@ export const Dashboard = () => {
       });
 
       // Prepare Pie Data
+      // We show Market in the chart for visibility, even if it's not subtracted from the main cash balance
       setPieData([
         { name: 'Market', value: finalMarketTotal },
         { name: 'Food', value: finalFoodTotal },
