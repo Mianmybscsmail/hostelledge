@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { supabase } from '../services/supabase';
-import { Card, Button, Input, Select } from '../components/ui/Card';
+import { Card, Button, Input, Select, Skeleton } from '../components/ui/Card';
 import { FriendTransaction } from '../types';
 import { ArrowUpRight, ArrowDownLeft, CheckCircle2, Clock, Users, Trash2, Pencil } from 'lucide-react';
 
@@ -13,6 +13,7 @@ export const Friends: React.FC<FriendsProps> = ({ isAdmin, canEdit }) => {
   const [friends, setFriends] = useState<FriendTransaction[]>([]);
   const [showAdd, setShowAdd] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
+  const [loading, setLoading] = useState(true);
   
   // Updated Defaults: Week Amount & Paid (Deposit)
   const [name, setName] = useState('');
@@ -23,8 +24,10 @@ export const Friends: React.FC<FriendsProps> = ({ isAdmin, canEdit }) => {
   const [submitting, setSubmitting] = useState(false);
 
   const fetchFriends = async () => {
+    setLoading(true);
     const { data } = await supabase.from('friends').select('*').order('date', { ascending: false });
     if (data) setFriends(data);
+    setLoading(false);
   };
 
   useEffect(() => {
@@ -144,7 +147,23 @@ export const Friends: React.FC<FriendsProps> = ({ isAdmin, canEdit }) => {
       )}
 
       <div className="space-y-3">
-        {friends.map((item) => {
+        {loading ? (
+             Array.from({ length: 5 }).map((_, i) => (
+                <div key={i} className="p-4 rounded-xl border border-gray-100 dark:border-zinc-800 flex items-center justify-between bg-white dark:bg-zinc-900">
+                    <div className="flex items-center gap-3">
+                        <Skeleton className="h-10 w-10 rounded-full shrink-0" />
+                        <div className="space-y-1">
+                            <Skeleton className="h-4 w-24" />
+                            <Skeleton className="h-3 w-32" />
+                        </div>
+                    </div>
+                    <div className="flex flex-col items-end gap-1">
+                        <Skeleton className="h-4 w-16" />
+                        <Skeleton className="h-3 w-12 rounded-full" />
+                    </div>
+                </div>
+            ))
+        ) : friends.map((item) => {
            // Check if it's a contribution/deposit
            const isDeposit = item.category === 'Week Amount' || item.type === 'paid';
 
@@ -198,7 +217,7 @@ export const Friends: React.FC<FriendsProps> = ({ isAdmin, canEdit }) => {
             </div>
           );
         })}
-         {friends.length === 0 && <div className="text-center text-zinc-600 py-8">No friend transactions recorded.</div>}
+         {!loading && friends.length === 0 && <div className="text-center text-zinc-600 py-8">No friend transactions recorded.</div>}
       </div>
     </div>
   );
