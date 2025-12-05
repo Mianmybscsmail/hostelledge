@@ -4,7 +4,7 @@ import { Bot, X, Send, Loader2, Sparkles, MessageSquare } from 'lucide-react';
 import { ChatMessage } from '../types';
 
 const OPENROUTER_API_KEY = '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';
-const SITE_URL = 'https://hostel-kharcha-manager.netlify.app'; // Update with your actual URL
+const SITE_URL = 'https://hostelledge.netlify.app'; // Update with your actual URL
 const SITE_NAME = 'Hostel Kharcha Manager';
 
 export const AiAssistant: React.FC = () => {
@@ -98,7 +98,7 @@ export const AiAssistant: React.FC = () => {
           "Content-Type": "application/json"
         },
         body: JSON.stringify({
-          "model": "amazon/nova-2-lite-v1:free",
+          "model": "google/gemini-2.0-flash-lite-preview-02-05:free",
           "messages": [
             { "role": "system", "content": systemPrompt },
             ...messages.filter(m => m.role !== 'system'),
