@@ -21,6 +21,7 @@ export interface Budget {
   details?: string;
   date: string;
   created_by?: string;
+  spent?: number; // Calculated field for UI
 }
 
 export interface Expense {
@@ -84,4 +85,6 @@ export interface DashboardStats {
   friendDues: number;
   friendContribution: number;
   remaining: number;
+  costPerPerson: number;
+  friendCount: number;
 }
