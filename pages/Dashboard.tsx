@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { supabase } from '../services/supabase';
 import { Card } from '../components/ui/Card';
 import { DashboardStats, WeeklyMoney, Budget, MarketItem } from '../types';
-import { TrendingUp, TrendingDown, DollarSign, PieChart as PieIcon, ShoppingBag, Utensils, Users } from 'lucide-react';
+import { TrendingUp, TrendingDown, DollarSign, PieChart as PieIcon, ShoppingBag, Utensils, Users, User } from 'lucide-react';
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip, BarChart, Bar, XAxis, YAxis } from 'recharts';
 
 export const Dashboard = () => {
@@ -13,7 +13,9 @@ export const Dashboard = () => {
     foodTotal: 0,
     friendDues: 0,
     friendContribution: 0,
-    remaining: 0
+    remaining: 0,
+    costPerPerson: 0,
+    friendCount: 0
   });
   const [budgets, setBudgets] = useState<Budget[]>([]);
   const [marketItems, setMarketItems] = useState<MarketItem[]>([]);
@@ -48,7 +50,7 @@ export const Dashboard = () => {
       const mealsSum = mealsData?.reduce((acc, curr) => acc + curr.cost, 0) || 0;
 
       // 5. Get Friend Transactions
-      const { data: friendsData } = await supabase.from('friends').select('amount, type, status, category');
+      const { data: friendsData } = await supabase.from('friends').select('amount, type, status, category, name');
       
       // Calculate Friends Contribution (Week Amount & Paid/Deposit)
       const friendContribution = friendsData
@@ -59,6 +61,10 @@ export const Dashboard = () => {
       const friendDues = friendsData
         ?.filter(f => f.status === 'Pending' && f.category !== 'Week Amount')
         .reduce((acc, curr) => curr.type === 'borrowed' ? acc + curr.amount : acc - curr.amount, 0) || 0;
+
+      // Count Unique Friends
+      const uniqueFriends = new Set(friendsData?.map(f => f.name.trim().toLowerCase()).filter(n => n));
+      const friendCount = uniqueFriends.size;
 
       // 6. Get Budgets
       const { data: budgetData } = await supabase.from('budgets').select('*');
@@ -76,9 +82,11 @@ export const Dashboard = () => {
       // Total Spent Calculation:
       // EXCLUDES marketItemsSum as requested. 
       // It includes Quick Expenses (Misc + Food + Quick Market) + Detailed Meals.
-      // If you want to strictly exclude ALL market expenses (even quick ones), subtract expenseMarket.
-      // Based on prompt "don't count or add the market items amount", we exclude the marketItemsSum from the table.
       const totalSpent = totalExpensesRaw + mealsSum; 
+      
+      // Cost Per Person
+      // Divide total spent by number of unique friends added
+      const costPerPerson = friendCount > 0 ? totalSpent / friendCount : 0;
       
       setStats({
         totalWeekly,
@@ -87,7 +95,9 @@ export const Dashboard = () => {
         foodTotal: finalFoodTotal,
         friendDues,
         friendContribution,
-        remaining: totalWeekly - totalSpent
+        remaining: totalWeekly - totalSpent,
+        costPerPerson,
+        friendCount
       });
 
       // Prepare Pie Data
@@ -159,7 +169,7 @@ export const Dashboard = () => {
       </div>
 
       {/* Specific Category Breakdowns */}
-      <div className="grid grid-cols-3 gap-2">
+      <div className="grid grid-cols-2 gap-2">
          <div className="bg-zinc-900 p-3 rounded-xl border border-zinc-800">
             <ShoppingBag size={16} className="text-purple-500 mb-2" />
             <p className="text-[10px] text-zinc-500">Market</p>
@@ -174,6 +184,11 @@ export const Dashboard = () => {
             <Users size={16} className="text-teal-500 mb-2" />
             <p className="text-[10px] text-zinc-500">From Friends</p>
             <p className="font-semibold text-teal-400">+{stats.friendContribution}</p>
+         </div>
+         <div className="bg-zinc-900 p-3 rounded-xl border border-zinc-800">
+            <User size={16} className="text-pink-500 mb-2" />
+            <p className="text-[10px] text-zinc-500">Per Person ({stats.friendCount})</p>
+            <p className="font-semibold text-pink-400">PKR {Math.round(stats.costPerPerson).toLocaleString()}</p>
          </div>
       </div>
 
