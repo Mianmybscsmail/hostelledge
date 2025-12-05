@@ -1,6 +1,5 @@
 import React, { useEffect, useState } from 'react';
 import { supabase } from './services/supabase';
-import { User } from '@supabase/supabase-js';
 import { UserProfile } from './types';
 import { Auth } from './pages/Auth';
 import { Dashboard } from './pages/Dashboard';
@@ -9,14 +8,15 @@ import { Market } from './pages/Market';
 import { Friends } from './pages/Friends';
 import { Settings } from './pages/Settings';
 import { Layout } from './components/ui/Layout';
-import { PlusCircle, X } from 'lucide-react';
-import { Card, Input, Button, Select } from './components/ui/Card';
+import { X } from 'lucide-react';
+import { Input, Button, Select } from './components/ui/Card';
 
 function App() {
   const [session, setSession] = useState<any>(null);
   const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
   const [activeTab, setActiveTab] = useState('home');
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
+  const [theme, setTheme] = useState<'dark' | 'light'>('dark');
   
   // Quick Add State
   const [addAmount, setAddAmount] = useState('');
@@ -25,6 +25,16 @@ function App() {
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   useEffect(() => {
+    // Check local storage for theme
+    const savedTheme = localStorage.getItem('theme') as 'dark' | 'light';
+    if (savedTheme) {
+      setTheme(savedTheme);
+      document.documentElement.classList.remove('dark', 'light');
+      document.documentElement.classList.add(savedTheme);
+    } else {
+      document.documentElement.classList.add('dark');
+    }
+
     supabase.auth.getSession().then(({ data: { session } }) => {
       setSession(session);
       if (session?.user) fetchUserProfile(session.user.id);
@@ -40,6 +50,14 @@ function App() {
 
     return () => subscription.unsubscribe();
   }, []);
+
+  const toggleTheme = () => {
+    const newTheme = theme === 'dark' ? 'light' : 'dark';
+    setTheme(newTheme);
+    localStorage.setItem('theme', newTheme);
+    document.documentElement.classList.remove('dark', 'light');
+    document.documentElement.classList.add(newTheme);
+  };
 
   const fetchUserProfile = async (userId: string) => {
     const { data, error } = await supabase.from('users').select('*').eq('id', userId).single();
@@ -80,7 +98,6 @@ function App() {
       setIsAddModalOpen(false);
       setAddAmount('');
       setAddTitle('');
-      // Show toast ideally, for now just close
     }
   };
 
@@ -95,16 +112,24 @@ function App() {
         {activeTab === 'meals' && <Meals isAdmin={isAdmin} canEdit={canEdit} />}
         {activeTab === 'market' && <Market isAdmin={isAdmin} canEdit={canEdit} />}
         {activeTab === 'friends' && <Friends isAdmin={isAdmin} canEdit={canEdit} />}
-        {activeTab === 'settings' && <Settings user={session.user} profile={userProfile} isAdmin={isAdmin} />}
+        {activeTab === 'settings' && (
+          <Settings 
+            user={session.user} 
+            profile={userProfile} 
+            isAdmin={isAdmin} 
+            theme={theme}
+            toggleTheme={toggleTheme}
+          />
+        )}
       </Layout>
 
       {/* Quick Add Modal Overlay */}
       {isAddModalOpen && (
         <div className="fixed inset-0 z-[60] flex items-end sm:items-center justify-center bg-black/80 backdrop-blur-sm p-4">
-           <div className="w-full max-w-md bg-zinc-900 border border-zinc-800 rounded-2xl p-6 animate-in slide-in-from-bottom-10">
+           <div className="w-full max-w-md bg-white dark:bg-zinc-900 border border-gray-200 dark:border-zinc-800 rounded-2xl p-6 animate-in slide-in-from-bottom-10 shadow-2xl">
               <div className="flex justify-between items-center mb-4">
-                  <h2 className="text-xl font-bold text-white">Quick Expense</h2>
-                  <button onClick={() => setIsAddModalOpen(false)} className="text-zinc-500 hover:text-white"><X /></button>
+                  <h2 className="text-xl font-bold text-gray-900 dark:text-white">Quick Expense</h2>
+                  <button onClick={() => setIsAddModalOpen(false)} className="text-gray-500 hover:text-gray-900 dark:text-zinc-500 dark:hover:text-white"><X /></button>
               </div>
               
               <form onSubmit={handleQuickAddExpense} className="space-y-4">
