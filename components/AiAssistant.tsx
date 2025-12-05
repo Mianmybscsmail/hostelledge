@@ -3,8 +3,8 @@ import { supabase } from '../services/supabase';
 import { Bot, X, Send, Loader2, Sparkles, MessageSquare } from 'lucide-react';
 import { ChatMessage } from '../types';
 
-const OPENROUTER_API_KEY = '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';
-const SITE_URL = 'https://hostel-kharcha-manager.netlify.app'; // Update with your actual URL
+const OPENROUTER_API_KEY = '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';
+const SITE_URL = 'https://hostelledge.vercel.app/'; // Update with your actual URL
 const SITE_NAME = 'Hostel Kharcha Manager';
 
 export const AiAssistant: React.FC = () => {
@@ -25,34 +25,39 @@ export const AiAssistant: React.FC = () => {
   }, [messages, isOpen]);
 
   const fetchContextData = async () => {
-    const { data: expenses } = await supabase.from('expenses').select('*').limit(50);
-    const { data: meals } = await supabase.from('meals').select('*').limit(20);
-    const { data: friends } = await supabase.from('friends').select('*');
-    const { data: budgets } = await supabase.from('budgets').select('*');
-    const { data: weekly } = await supabase.from('weekly_money').select('*');
+    try {
+      const { data: expenses } = await supabase.from('expenses').select('*').limit(50);
+      const { data: meals } = await supabase.from('meals').select('*').limit(20);
+      const { data: friends } = await supabase.from('friends').select('*');
+      const { data: budgets } = await supabase.from('budgets').select('*');
+      const { data: weekly } = await supabase.from('weekly_money').select('*');
 
-    const totalWeekly = weekly?.reduce((acc, curr) => acc + curr.amount, 0) || 0;
-    
-    // Format data for AI
-    const context = `
-      CURRENT DATE: ${new Date().toDateString()}
+      const totalWeekly = weekly?.reduce((acc, curr) => acc + curr.amount, 0) || 0;
       
-      FINANCIAL SNAPSHOT:
-      - Total Budget Added: PKR ${totalWeekly}
-      
-      RECENT EXPENSES:
-      ${expenses?.map(e => `- ${e.date.split('T')[0]}: ${e.title} (${e.category}) - PKR ${e.amount}`).join('\n')}
-      
-      MEAL HISTORY:
-      ${meals?.map(m => `- ${m.date.split('T')[0]}: ${m.meal_type} cooked by ${m.cooked}, Cost: ${m.cost}`).join('\n')}
-      
-      FRIEND TRANSACTIONS:
-      ${friends?.map(f => `- ${f.name}: ${f.type === 'borrowed' ? 'Owes us' : 'Paid/Deposited'} PKR ${f.amount} (${f.status})`).join('\n')}
-      
-      BUDGETS:
-      ${budgets?.map(b => `- ${b.name}: Limit PKR ${b.amount}`).join('\n')}
-    `;
-    return context;
+      // Format data for AI
+      const context = `
+        CURRENT DATE: ${new Date().toDateString()}
+        
+        FINANCIAL SNAPSHOT:
+        - Total Budget Added: PKR ${totalWeekly}
+        
+        RECENT EXPENSES:
+        ${expenses?.map(e => `- ${e.date.split('T')[0]}: ${e.title} (${e.category}) - PKR ${e.amount}`).join('\n')}
+        
+        MEAL HISTORY:
+        ${meals?.map(m => `- ${m.date.split('T')[0]}: ${m.meal_type} cooked by ${m.cooked}, Cost: ${m.cost}`).join('\n')}
+        
+        FRIEND TRANSACTIONS:
+        ${friends?.map(f => `- ${f.name}: ${f.type === 'borrowed' ? 'Owes us' : 'Paid/Deposited'} PKR ${f.amount} (${f.status})`).join('\n')}
+        
+        BUDGETS:
+        ${budgets?.map(b => `- ${b.name}: Limit PKR ${b.amount}`).join('\n')}
+      `;
+      return context;
+    } catch (err) {
+      console.error("Error fetching DB context:", err);
+      return "Error fetching database data.";
+    }
   };
 
   const handleSend = async (e: React.FormEvent) => {
@@ -89,6 +94,8 @@ export const AiAssistant: React.FC = () => {
         Do not apologize. Do not provide extra info for unrelated queries.
       `;
 
+      console.log("Sending request to OpenRouter...");
+
       const response = await fetch("https://openrouter.ai/api/v1/chat/completions", {
         method: "POST",
         headers: {
@@ -98,7 +105,7 @@ export const AiAssistant: React.FC = () => {
           "Content-Type": "application/json"
         },
         body: JSON.stringify({
-          "model": "google/gemini-2.0-flash-lite-preview-02-05:free",
+          "model": "openai/gpt-oss-20b:free", //google/gemma-3n-e2b-it:free
           "messages": [
             { "role": "system", "content": systemPrompt },
             ...messages.filter(m => m.role !== 'system'),
@@ -109,16 +116,21 @@ export const AiAssistant: React.FC = () => {
 
       const data = await response.json();
       
-      if (data.choices && data.choices.length > 0) {
+      // Robust Error Handling
+      if (!response.ok || data.error) {
+         console.error("OpenRouter API Error Full Log:", JSON.stringify(data));
+         const errorMessage = data.error?.message || `API Status: ${response.status}`;
+         setMessages(prev => [...prev, { role: 'assistant', content: `⚠️ **AI Error:** ${errorMessage}\n\n*Check the console for full details.*` }]);
+      } else if (data.choices && data.choices.length > 0) {
         const aiResponse = data.choices[0].message.content;
         setMessages(prev => [...prev, { role: 'assistant', content: aiResponse }]);
       } else {
-        setMessages(prev => [...prev, { role: 'assistant', content: "Sorry, I couldn't connect to the server." }]);
+        setMessages(prev => [...prev, { role: 'assistant', content: "Sorry, I couldn't connect to the server (No response)." }]);
       }
 
     } catch (error) {
-      console.error(error);
-      setMessages(prev => [...prev, { role: 'assistant', content: "Error processing request." }]);
+      console.error("Network/Fetch Error:", error);
+      setMessages(prev => [...prev, { role: 'assistant', content: "Network error processing request. Please check your internet connection." }]);
     } finally {
       setLoading(false);
     }
@@ -126,6 +138,7 @@ export const AiAssistant: React.FC = () => {
 
   // Simple Markdown Renderer
   const renderMarkdown = (text: string) => {
+    if (!text) return { __html: '' };
     // 1. Headers (### Header)
     let html = text.replace(/^### (.*$)/gim, '<h3 class="font-bold text-lg mt-2 mb-1 text-red-400">$1</h3>');
     // 2. Bold (**text**)
@@ -159,14 +172,19 @@ export const AiAssistant: React.FC = () => {
         <div className="fixed bottom-0 sm:bottom-28 right-0 sm:right-4 w-full sm:w-96 h-[80vh] sm:h-[600px] bg-zinc-900 border border-zinc-800 sm:rounded-2xl shadow-2xl z-50 flex flex-col animate-in slide-in-from-bottom-10">
           
           {/* Header */}
-          <div className="p-4 border-b border-zinc-800 bg-zinc-950/50 rounded-t-2xl flex items-center gap-3">
-            <div className="p-2 bg-indigo-500/20 rounded-lg">
-                <Sparkles size={20} className="text-indigo-400" />
+          <div className="p-4 border-b border-zinc-800 bg-zinc-950/50 rounded-t-2xl flex items-center justify-between">
+            <div className="flex items-center gap-3">
+                <div className="p-2 bg-indigo-500/20 rounded-lg">
+                    <Sparkles size={20} className="text-indigo-400" />
+                </div>
+                <div>
+                    <h3 className="font-bold text-white flex items-center gap-2">ledgeAI <span className="text-[10px] bg-indigo-500 text-white px-1.5 py-0.5 rounded">BETA</span></h3>
+                    <p className="text-[10px] text-zinc-400">Created by Mian Khizar</p>
+                </div>
             </div>
-            <div>
-                <h3 className="font-bold text-white flex items-center gap-2">ledgeAI <span className="text-[10px] bg-indigo-500 text-white px-1.5 py-0.5 rounded">BETA</span></h3>
-                <p className="text-[10px] text-zinc-400">Created by Mian Khizar</p>
-            </div>
+            <button onClick={() => setIsOpen(false)} className="p-2 text-zinc-400 hover:text-white hover:bg-zinc-800 rounded-lg transition-colors">
+                <X size={20} />
+            </button>
           </div>
 
           {/* Messages Area */}
