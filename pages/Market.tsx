@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { supabase } from '../services/supabase';
-import { Card, Button, Input } from '../components/ui/Card';
+import { Card, Button, Input, Skeleton } from '../components/ui/Card';
 import { MarketItem } from '../types';
 import { ShoppingCart, Tag, Pencil, Trash2 } from 'lucide-react';
 import { format } from 'date-fns';
@@ -14,6 +14,7 @@ export const Market: React.FC<MarketProps> = ({ isAdmin, canEdit }) => {
   const [items, setItems] = useState<MarketItem[]>([]);
   const [showAdd, setShowAdd] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
+  const [loading, setLoading] = useState(true);
   
   const [itemName, setItemName] = useState('');
   const [quantity, setQuantity] = useState('');
@@ -24,8 +25,10 @@ export const Market: React.FC<MarketProps> = ({ isAdmin, canEdit }) => {
   const [submitting, setSubmitting] = useState(false);
 
   const fetchMarket = async () => {
+    setLoading(true);
     const { data } = await supabase.from('market_items').select('*').order('date', { ascending: false });
     if (data) setItems(data);
+    setLoading(false);
   };
 
   useEffect(() => {
@@ -130,7 +133,23 @@ export const Market: React.FC<MarketProps> = ({ isAdmin, canEdit }) => {
       )}
 
       <div className="grid gap-3">
-        {items.map((item) => (
+        {loading ? (
+           Array.from({ length: 5 }).map((_, i) => (
+             <div key={i} className="bg-white dark:bg-zinc-900 p-4 rounded-xl border border-gray-100 dark:border-zinc-800 flex flex-col gap-2">
+                 <div className="flex justify-between items-start">
+                   <div className="flex items-center gap-3">
+                     <Skeleton className="h-10 w-10 rounded-lg shrink-0" />
+                     <div className="space-y-1">
+                         <Skeleton className="h-4 w-24" />
+                         <Skeleton className="h-3 w-32" />
+                     </div>
+                   </div>
+                   <Skeleton className="h-4 w-16" />
+                 </div>
+                 <Skeleton className="h-8 w-full rounded-lg mt-2" />
+             </div>
+           ))
+        ) : items.map((item) => (
           <div key={item.id} className="bg-zinc-900 p-4 rounded-xl border border-zinc-800 flex flex-col gap-2 relative group">
             <div className="flex justify-between items-start">
               <div className="flex items-center gap-3">
@@ -179,7 +198,7 @@ export const Market: React.FC<MarketProps> = ({ isAdmin, canEdit }) => {
             )}
           </div>
         ))}
-        {items.length === 0 && <div className="text-center text-zinc-600 py-8">No market purchases yet.</div>}
+        {!loading && items.length === 0 && <div className="text-center text-zinc-600 py-8">No market purchases yet.</div>}
       </div>
     </div>
   );
