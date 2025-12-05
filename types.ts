@@ -96,3 +96,8 @@ export interface DashboardStats {
   costPerPerson: number;
   friendCount: number;
 }
+
+export interface ChatMessage {
+  role: 'user' | 'assistant' | 'system';
+  content: string;
+}
