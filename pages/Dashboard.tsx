@@ -1,9 +1,10 @@
 import React, { useEffect, useState } from 'react';
 import { supabase } from '../services/supabase';
 import { Card, Skeleton } from '../components/ui/Card';
-import { DashboardStats, WeeklyMoney, Budget, MarketItem } from '../types';
-import { TrendingUp, TrendingDown, DollarSign, PieChart as PieIcon, ShoppingBag, Utensils, Users, User } from 'lucide-react';
+import { DashboardStats, WeeklyMoney, Budget, MarketItem, MealMenuItem } from '../types';
+import { TrendingUp, TrendingDown, DollarSign, PieChart as PieIcon, ShoppingBag, Utensils, Users, User, CalendarDays } from 'lucide-react';
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip, BarChart, Bar, XAxis, YAxis } from 'recharts';
+import { format } from 'date-fns';
 
 export const Dashboard = () => {
   const [stats, setStats] = useState<DashboardStats>({
@@ -20,6 +21,7 @@ export const Dashboard = () => {
   const [budgets, setBudgets] = useState<Budget[]>([]);
   const [marketItems, setMarketItems] = useState<MarketItem[]>([]);
   const [pieData, setPieData] = useState<{name: string, value: number}[]>([]);
+  const [menuPlan, setMenuPlan] = useState<{day: string, menu: MealMenuItem | undefined}[]>([]);
   const [loading, setLoading] = useState(true);
 
   const fetchDashboardData = async () => {
@@ -96,6 +98,21 @@ export const Dashboard = () => {
 
       setBudgets(budgetsWithSpent);
 
+      // 7. Get Meal Menu
+      const { data: menuData } = await supabase.from('meal_menu').select('*');
+      
+      const days = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+      const todayIndex = new Date().getDay();
+      const yesterdayIndex = (todayIndex - 1 + 7) % 7;
+      const tomorrowIndex = (todayIndex + 1) % 7;
+
+      const plannedMeals = [
+        { day: 'Yesterday', menu: menuData?.find(m => m.day === days[yesterdayIndex]) },
+        { day: 'Today', menu: menuData?.find(m => m.day === days[todayIndex]) },
+        { day: 'Tomorrow', menu: menuData?.find(m => m.day === days[tomorrowIndex]) },
+      ];
+      setMenuPlan(plannedMeals);
+
       // Grand Totals
       // Total Weekly = Money Added Directly + Money Deposited by Friends for Week
       const totalWeekly = directWeeklySum + friendContribution;
@@ -169,6 +186,9 @@ export const Dashboard = () => {
           <Skeleton className="h-10 w-10 rounded-lg" />
         </div>
 
+        {/* Menu Skeleton */}
+        <Skeleton className="h-24 w-full rounded-2xl" />
+
         {/* Primary Stats Grid */}
         <div className="grid grid-cols-2 gap-3">
           <Skeleton className="h-24 rounded-2xl" />
@@ -217,6 +237,32 @@ export const Dashboard = () => {
           <TrendingUp className="text-green-500 w-6 h-6" />
         </div>
       </div>
+
+       {/* Daily Menu Section */}
+       <div className="space-y-2">
+        <h3 className="text-gray-900 dark:text-white font-semibold flex items-center gap-2 text-sm">
+            <CalendarDays size={16} className="text-red-500" /> Meal Menu
+        </h3>
+        <div className="flex gap-2 overflow-x-auto pb-2 snap-x">
+            {menuPlan.map((item, idx) => (
+                <div key={idx} className={`snap-center min-w-[140px] flex-1 bg-white dark:bg-zinc-900 p-3 rounded-xl border ${item.day === 'Today' ? 'border-red-500/30 ring-1 ring-red-500/20' : 'border-gray-200 dark:border-zinc-800'}`}>
+                    <p className={`text-xs font-bold mb-2 ${item.day === 'Today' ? 'text-red-500' : 'text-gray-500 dark:text-zinc-400'}`}>
+                        {item.day} {item.day === 'Today' && `(${format(new Date(), 'EEE')})`}
+                    </p>
+                    <div className="space-y-1 text-[10px] text-gray-700 dark:text-zinc-300">
+                        <div className="flex justify-between">
+                            <span className="text-gray-400 dark:text-zinc-600">L:</span>
+                            <span className="font-medium truncate max-w-[80px] text-right">{item.menu?.lunch || '-'}</span>
+                        </div>
+                        <div className="flex justify-between">
+                            <span className="text-gray-400 dark:text-zinc-600">D:</span>
+                            <span className="font-medium truncate max-w-[80px] text-right">{item.menu?.dinner || '-'}</span>
+                        </div>
+                    </div>
+                </div>
+            ))}
+        </div>
+       </div>
 
       {/* Primary Stats Grid */}
       <div className="grid grid-cols-2 gap-3">
