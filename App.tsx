@@ -7,6 +7,7 @@ import { Meals } from './pages/Meals';
 import { Market } from './pages/Market';
 import { Friends } from './pages/Friends';
 import { Settings } from './pages/Settings';
+import { WeeklyMenu } from './pages/WeeklyMenu';
 import { Layout } from './components/ui/Layout';
 import { X } from 'lucide-react';
 import { Input, Button, Select } from './components/ui/Card';
@@ -108,8 +109,8 @@ function App() {
   return (
     <>
       <Layout activeTab={activeTab} setActiveTab={handleTabChange} isAdmin={isAdmin} canEdit={canEdit}>
-        {activeTab === 'home' && <Dashboard />}
-        {activeTab === 'meals' && <Meals isAdmin={isAdmin} canEdit={canEdit} />}
+        {activeTab === 'home' && <Dashboard onNavigate={handleTabChange} />}
+        {activeTab === 'meals' && <Meals isAdmin={isAdmin} canEdit={canEdit} onNavigate={handleTabChange} />}
         {activeTab === 'market' && <Market isAdmin={isAdmin} canEdit={canEdit} />}
         {activeTab === 'friends' && <Friends isAdmin={isAdmin} canEdit={canEdit} />}
         {activeTab === 'settings' && (
@@ -119,7 +120,15 @@ function App() {
             isAdmin={isAdmin} 
             theme={theme}
             toggleTheme={toggleTheme}
+            onNavigate={handleTabChange}
           />
+        )}
+        {activeTab === 'weekly-menu' && (
+           <WeeklyMenu 
+              isAdmin={isAdmin} 
+              canEdit={canEdit} 
+              onBack={() => setActiveTab('meals')} 
+           />
         )}
       </Layout>
 
