@@ -31,7 +31,8 @@ export const Dashboard = () => {
       const directWeeklySum = weeklyData?.reduce((acc, curr) => acc + curr.amount, 0) || 0;
 
       // 2. Get Expenses (General/Quick)
-      const { data: expensesData } = await supabase.from('expenses').select('amount, category');
+      // Note: Fetching title/details now to match against budgets
+      const { data: expensesData } = await supabase.from('expenses').select('*');
       
       // Calculate expenses by category
       const expenseMarket = expensesData?.filter(e => e.category === 'Market').reduce((acc, curr) => acc + curr.amount, 0) || 0;
@@ -66,9 +67,34 @@ export const Dashboard = () => {
       const uniqueFriends = new Set(friendsData?.map(f => f.name.trim().toLowerCase()).filter(n => n));
       const friendCount = uniqueFriends.size;
 
-      // 6. Get Budgets
+      // 6. Get Budgets & Calculate Progress
       const { data: budgetData } = await supabase.from('budgets').select('*');
-      setBudgets(budgetData || []);
+      
+      // Logic to match expenses/market items to budgets by Name
+      const budgetsWithSpent = (budgetData || []).map((b: Budget) => {
+        const budgetName = b.name.toLowerCase();
+        
+        // Match in Expenses
+        const matchedExpenses = (expensesData || []).filter(e => 
+            e.title?.toLowerCase().includes(budgetName) || 
+            e.details?.toLowerCase().includes(budgetName)
+        );
+        const expenseSum = matchedExpenses.reduce((sum, e) => sum + e.amount, 0);
+
+        // Match in Market Items
+        const matchedMarket = (marketData || []).filter(m => 
+            m.item_name?.toLowerCase().includes(budgetName) || 
+            m.note?.toLowerCase().includes(budgetName)
+        );
+        const marketSum = matchedMarket.reduce((sum, m) => sum + m.cost, 0);
+
+        return {
+            ...b,
+            spent: expenseSum + marketSum
+        };
+      });
+
+      setBudgets(budgetsWithSpent);
 
       // Grand Totals
       // Total Weekly = Money Added Directly + Money Deposited by Friends for Week
@@ -183,66 +209,66 @@ export const Dashboard = () => {
       <div className="flex justify-between items-end">
         <div>
           <h2 className="text-zinc-400 text-sm font-medium">Remaining Balance</h2>
-          <h1 className={`text-4xl font-bold ${stats.remaining < 0 ? 'text-red-500' : 'text-white'}`}>
+          <h1 className={`text-4xl font-bold ${stats.remaining < 0 ? 'text-red-500' : 'text-gray-900 dark:text-white'}`}>
             PKR {stats.remaining.toLocaleString()}
           </h1>
         </div>
-        <div className="bg-zinc-800 p-2 rounded-lg">
+        <div className="bg-gray-100 dark:bg-zinc-800 p-2 rounded-lg">
           <TrendingUp className="text-green-500 w-6 h-6" />
         </div>
       </div>
 
       {/* Primary Stats Grid */}
       <div className="grid grid-cols-2 gap-3">
-        <Card className="bg-zinc-900 border-zinc-800">
+        <Card className="bg-white dark:bg-zinc-900 border-gray-200 dark:border-zinc-800">
           <div className="flex items-start justify-between mb-2">
             <span className="p-2 bg-blue-500/10 rounded-lg text-blue-500"><DollarSign size={18} /></span>
           </div>
-          <p className="text-zinc-400 text-xs">Total Added</p>
-          <p className="text-xl font-bold text-white">PKR {stats.totalWeekly.toLocaleString()}</p>
+          <p className="text-gray-500 dark:text-zinc-400 text-xs">Total Added</p>
+          <p className="text-xl font-bold text-gray-900 dark:text-white">PKR {stats.totalWeekly.toLocaleString()}</p>
         </Card>
-        <Card className="bg-zinc-900 border-zinc-800">
+        <Card className="bg-white dark:bg-zinc-900 border-gray-200 dark:border-zinc-800">
            <div className="flex items-start justify-between mb-2">
             <span className="p-2 bg-red-500/10 rounded-lg text-red-500"><TrendingDown size={18} /></span>
           </div>
-          <p className="text-zinc-400 text-xs">Total Spent</p>
-          <p className="text-xl font-bold text-white">PKR {stats.totalSpent.toLocaleString()}</p>
+          <p className="text-gray-500 dark:text-zinc-400 text-xs">Total Spent</p>
+          <p className="text-xl font-bold text-gray-900 dark:text-white">PKR {stats.totalSpent.toLocaleString()}</p>
         </Card>
       </div>
 
       {/* Specific Category Breakdowns */}
       <div className="grid grid-cols-2 gap-2">
-         <div className="bg-zinc-900 p-3 rounded-xl border border-zinc-800">
+         <div className="bg-white dark:bg-zinc-900 p-3 rounded-xl border border-gray-200 dark:border-zinc-800">
             <ShoppingBag size={16} className="text-purple-500 mb-2" />
-            <p className="text-[10px] text-zinc-500">Market</p>
-            <p className="font-semibold">{stats.marketTotal}</p>
+            <p className="text-[10px] text-gray-500 dark:text-zinc-500">Market</p>
+            <p className="font-semibold text-gray-900 dark:text-zinc-200">{stats.marketTotal}</p>
          </div>
-         <div className="bg-zinc-900 p-3 rounded-xl border border-zinc-800">
+         <div className="bg-white dark:bg-zinc-900 p-3 rounded-xl border border-gray-200 dark:border-zinc-800">
             <Utensils size={16} className="text-orange-500 mb-2" />
-            <p className="text-[10px] text-zinc-500">Food</p>
-            <p className="font-semibold">{stats.foodTotal}</p>
+            <p className="text-[10px] text-gray-500 dark:text-zinc-500">Food</p>
+            <p className="font-semibold text-gray-900 dark:text-zinc-200">{stats.foodTotal}</p>
          </div>
-         <div className="bg-zinc-900 p-3 rounded-xl border border-zinc-800">
+         <div className="bg-white dark:bg-zinc-900 p-3 rounded-xl border border-gray-200 dark:border-zinc-800">
             <Users size={16} className="text-teal-500 mb-2" />
-            <p className="text-[10px] text-zinc-500">From Friends</p>
-            <p className="font-semibold text-teal-400">+{stats.friendContribution}</p>
+            <p className="text-[10px] text-gray-500 dark:text-zinc-500">From Friends</p>
+            <p className="font-semibold text-teal-600 dark:text-teal-400">+{stats.friendContribution}</p>
          </div>
-         <div className="bg-zinc-900 p-3 rounded-xl border border-zinc-800">
+         <div className="bg-white dark:bg-zinc-900 p-3 rounded-xl border border-gray-200 dark:border-zinc-800">
             <User size={16} className="text-pink-500 mb-2" />
-            <p className="text-[10px] text-zinc-500">Per Person ({stats.friendCount})</p>
-            <p className="font-semibold text-pink-400">PKR {Math.round(stats.costPerPerson).toLocaleString()}</p>
+            <p className="text-[10px] text-gray-500 dark:text-zinc-500">Per Person ({stats.friendCount})</p>
+            <p className="font-semibold text-pink-600 dark:text-pink-400">PKR {Math.round(stats.costPerPerson).toLocaleString()}</p>
          </div>
       </div>
 
       {/* Budgets Section */}
       <div className="space-y-4">
         <div className="flex justify-between items-center">
-            <h3 className="text-lg font-semibold text-white">Budgets</h3>
-            {pieData.length > 0 && <span className="text-xs text-zinc-500">Distribution</span>}
+            <h3 className="text-lg font-semibold text-gray-900 dark:text-white">Budgets</h3>
+            {pieData.length > 0 && <span className="text-xs text-gray-500 dark:text-zinc-500">Distribution</span>}
         </div>
         
         {pieData.length > 0 ? (
-          <div className="h-48 w-full bg-zinc-900/50 rounded-2xl border border-zinc-800 p-2 relative">
+          <div className="h-48 w-full bg-white dark:bg-zinc-900/50 rounded-2xl border border-gray-200 dark:border-zinc-800 p-2 relative shadow-sm">
              <ResponsiveContainer width="100%" height="100%">
               <PieChart>
                 <Pie
@@ -267,39 +293,72 @@ export const Dashboard = () => {
              {/* Center Text */}
              <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
                  <div className="text-center">
-                     <p className="text-xs text-zinc-500">Spent</p>
-                     <p className="text-xl font-bold">{stats.totalSpent}</p>
+                     <p className="text-xs text-gray-500 dark:text-zinc-500">Spent</p>
+                     <p className="text-xl font-bold text-gray-900 dark:text-white">{stats.totalSpent}</p>
                  </div>
              </div>
           </div>
         ) : (
-          <div className="p-6 bg-zinc-900 rounded-xl text-center text-zinc-500 text-sm border border-zinc-800 border-dashed">
+          <div className="p-6 bg-white dark:bg-zinc-900 rounded-xl text-center text-gray-500 dark:text-zinc-500 text-sm border border-gray-200 dark:border-zinc-800 border-dashed">
             No expenses yet to show trends.
           </div>
+        )}
+
+        {/* Budget Progress Bars */}
+        {budgets.length > 0 && (
+            <div className="space-y-3 pt-2">
+                {budgets.map(b => {
+                    const spent = b.spent || 0;
+                    const percent = Math.min(100, Math.max(0, (spent / b.amount) * 100));
+                    const isOver = spent > b.amount;
+                    let colorClass = 'bg-green-500';
+                    if (percent > 75) colorClass = 'bg-yellow-500';
+                    if (percent > 90) colorClass = 'bg-red-500';
+
+                    return (
+                        <div key={b.id} className="bg-white dark:bg-zinc-900 p-3 rounded-xl border border-gray-200 dark:border-zinc-800">
+                            <div className="flex justify-between items-center mb-2 text-sm">
+                                <span className="font-medium text-gray-900 dark:text-zinc-200">{b.name}</span>
+                                <span className="text-gray-500 dark:text-zinc-400 text-xs">
+                                    <span className={isOver ? "text-red-500 font-bold" : "text-gray-900 dark:text-zinc-200"}>{spent}</span> 
+                                    / {b.amount}
+                                </span>
+                            </div>
+                            <div className="w-full h-2 bg-gray-100 dark:bg-zinc-800 rounded-full overflow-hidden">
+                                <div 
+                                    className={`h-full rounded-full transition-all duration-500 ${colorClass}`} 
+                                    style={{ width: `${percent}%` }} 
+                                />
+                            </div>
+                            {b.details && <p className="text-[10px] text-gray-400 dark:text-zinc-500 mt-1">{b.details}</p>}
+                        </div>
+                    );
+                })}
+            </div>
         )}
       </div>
 
        {/* Market Budgets / Notes Preview */}
        <div className="space-y-3">
-          <h3 className="text-lg font-semibold text-white">Market Budget Notes</h3>
-          <div className="bg-zinc-900 rounded-2xl border border-zinc-800 overflow-hidden">
+          <h3 className="text-lg font-semibold text-gray-900 dark:text-white">Market Budget Notes</h3>
+          <div className="bg-white dark:bg-zinc-900 rounded-2xl border border-gray-200 dark:border-zinc-800 overflow-hidden shadow-sm">
             {marketItems.filter(i => i.budget_per_item || i.note).length === 0 ? (
-                <div className="p-4 text-center text-zinc-500 text-xs">No market notes yet.</div>
+                <div className="p-4 text-center text-gray-500 dark:text-zinc-500 text-xs">No market notes yet.</div>
             ) : (
-                <ul className="divide-y divide-zinc-800">
+                <ul className="divide-y divide-gray-100 dark:divide-zinc-800">
                     {marketItems.filter(i => i.budget_per_item || i.note).slice(0, 3).map(item => (
                         <li key={item.id} className="p-3 flex justify-between items-center text-sm">
-                            <span className="text-zinc-300">{item.item_name}</span>
+                            <span className="text-gray-700 dark:text-zinc-300">{item.item_name}</span>
                             <div className="text-right">
-                                {item.budget_per_item && <span className="block text-xs text-zinc-500">Budget: {item.budget_per_item}</span>}
-                                {item.note && <span className="block text-[10px] text-zinc-600 truncate max-w-[100px]">{item.note}</span>}
+                                {item.budget_per_item && <span className="block text-xs text-gray-500 dark:text-zinc-500">Budget: {item.budget_per_item}</span>}
+                                {item.note && <span className="block text-[10px] text-gray-500 dark:text-zinc-600 truncate max-w-[100px]">{item.note}</span>}
                             </div>
                         </li>
                     ))}
                 </ul>
             )}
              {marketItems.filter(i => i.budget_per_item || i.note).length > 3 && (
-                <div className="p-2 text-center text-xs text-red-500 border-t border-zinc-800">View all in Market tab</div>
+                <div className="p-2 text-center text-xs text-red-500 border-t border-gray-100 dark:border-zinc-800">View all in Market tab</div>
             )}
           </div>
        </div>
