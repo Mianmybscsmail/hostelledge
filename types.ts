@@ -76,6 +76,14 @@ export interface WeeklyArchive {
   created_at?: string;
 }
 
+export interface MealMenuItem {
+  id: string;
+  day: string;
+  breakfast: string;
+  lunch: string;
+  dinner: string;
+}
+
 // Stats interface for dashboard
 export interface DashboardStats {
   totalWeekly: number;
