@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { supabase } from '../services/supabase';
 import { Card, Button, Input } from '../components/ui/Card';
 import { UserProfile } from '../types';
-import { Download, LogOut, User, ShieldAlert, Archive, Trash2, Moon, Sun, ChevronRight, Wallet, Users, FileText, ArrowLeft } from 'lucide-react';
+import { Download, LogOut, User, ShieldAlert, Archive, Trash2, Moon, Sun, ChevronRight, Wallet, Users, FileText, ArrowLeft, CalendarDays } from 'lucide-react';
 import { format } from 'date-fns';
 
 interface SettingsProps {
@@ -11,11 +11,12 @@ interface SettingsProps {
   isAdmin: boolean;
   theme: 'dark' | 'light';
   toggleTheme: () => void;
+  onNavigate: (page: string) => void;
 }
 
 type View = 'menu' | 'users' | 'budget' | 'archive' | 'general';
 
-export const Settings: React.FC<SettingsProps> = ({ user, profile, isAdmin, theme, toggleTheme }) => {
+export const Settings: React.FC<SettingsProps> = ({ user, profile, isAdmin, theme, toggleTheme, onNavigate }) => {
   const [currentView, setCurrentView] = useState<View>('menu');
   
   // Handlers for Views
@@ -58,6 +59,19 @@ export const Settings: React.FC<SettingsProps> = ({ user, profile, isAdmin, them
             </button>
           </div>
         </Card>
+
+        {/* Shortcuts */}
+        <div className="space-y-3">
+             <h3 className="text-gray-500 dark:text-zinc-500 text-xs font-semibold uppercase tracking-wider ml-1">Menu</h3>
+             
+             <MenuItem 
+                icon={<CalendarDays size={18} />} 
+                color="text-blue-500" 
+                bg="bg-blue-100 dark:bg-blue-900/20"
+                label="Weekly Meal Menu" 
+                onClick={() => onNavigate('weekly-menu')} 
+             />
+        </div>
 
         {/* Admin Controls Menu */}
         {isAdmin && (
