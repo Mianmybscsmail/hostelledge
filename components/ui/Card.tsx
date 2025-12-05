@@ -13,6 +13,10 @@ export const Card: React.FC<{ children: React.ReactNode; className?: string; tit
   </div>
 );
 
+export const Skeleton: React.FC<{ className?: string }> = ({ className = '' }) => (
+  <div className={`animate-pulse bg-gray-200 dark:bg-zinc-800 rounded-lg ${className}`} />
+);
+
 export const Button: React.FC<React.ButtonHTMLAttributes<HTMLButtonElement> & { variant?: 'primary' | 'secondary' | 'danger' | 'ghost'; isLoading?: boolean }> = ({ 
   children, 
   variant = 'primary', 
