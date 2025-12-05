@@ -1,12 +1,16 @@
 import React, { useEffect, useState } from 'react';
 import { supabase } from '../services/supabase';
 import { Card, Skeleton } from '../components/ui/Card';
-import { DashboardStats, WeeklyMoney, Budget, MarketItem, MealMenuItem } from '../types';
-import { TrendingUp, TrendingDown, DollarSign, PieChart as PieIcon, ShoppingBag, Utensils, Users, User, CalendarDays } from 'lucide-react';
-import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip, BarChart, Bar, XAxis, YAxis } from 'recharts';
+import { DashboardStats, Budget, MarketItem, MealMenuItem } from '../types';
+import { TrendingUp, TrendingDown, DollarSign, PieChart as PieIcon, ShoppingBag, Utensils, Users, User, CalendarDays, ChevronRight } from 'lucide-react';
+import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip } from 'recharts';
 import { format } from 'date-fns';
 
-export const Dashboard = () => {
+interface DashboardProps {
+  onNavigate: (page: string) => void;
+}
+
+export const Dashboard: React.FC<DashboardProps> = ({ onNavigate }) => {
   const [stats, setStats] = useState<DashboardStats>({
     totalWeekly: 0,
     totalSpent: 0,
@@ -228,7 +232,7 @@ export const Dashboard = () => {
       {/* Header */}
       <div className="flex justify-between items-end">
         <div>
-          <h2 className="text-zinc-400 text-sm font-medium">Remaining Balance</h2>
+          <h2 className="text-gray-500 dark:text-zinc-400 text-sm font-medium">Remaining Balance</h2>
           <h1 className={`text-4xl font-bold ${stats.remaining < 0 ? 'text-red-500' : 'text-gray-900 dark:text-white'}`}>
             PKR {stats.remaining.toLocaleString()}
           </h1>
@@ -240,9 +244,14 @@ export const Dashboard = () => {
 
        {/* Daily Menu Section */}
        <div className="space-y-2">
-        <h3 className="text-gray-900 dark:text-white font-semibold flex items-center gap-2 text-sm">
-            <CalendarDays size={16} className="text-red-500" /> Meal Menu
-        </h3>
+        <div className="flex justify-between items-center">
+            <h3 className="text-gray-900 dark:text-white font-semibold flex items-center gap-2 text-sm">
+                <CalendarDays size={16} className="text-red-500" /> Meal Menu
+            </h3>
+            <button onClick={() => onNavigate('weekly-menu')} className="text-xs text-red-500 font-medium flex items-center gap-1">
+                View Full <ChevronRight size={12} />
+            </button>
+        </div>
         <div className="flex gap-2 overflow-x-auto pb-2 snap-x">
             {menuPlan.map((item, idx) => (
                 <div key={idx} className={`snap-center min-w-[140px] flex-1 bg-white dark:bg-zinc-900 p-3 rounded-xl border ${item.day === 'Today' ? 'border-red-500/30 ring-1 ring-red-500/20' : 'border-gray-200 dark:border-zinc-800'}`}>
