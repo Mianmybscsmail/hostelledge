@@ -11,6 +11,7 @@ import { WeeklyMenu } from './pages/WeeklyMenu';
 import { Layout } from './components/ui/Layout';
 import { X } from 'lucide-react';
 import { Input, Button, Select } from './components/ui/Card';
+import { AiAssistant } from './components/AiAssistant';
 
 function App() {
   const [session, setSession] = useState<any>(null);
@@ -168,6 +169,9 @@ function App() {
            </div>
         </div>
       )}
+
+      {/* AI Assistant */}
+      <AiAssistant />
     </>
   );
 }
