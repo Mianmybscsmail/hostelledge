@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { supabase } from '../services/supabase';
-import { Card, Button, Input, Select } from '../components/ui/Card';
+import { Card, Button, Input, Select, Skeleton } from '../components/ui/Card';
 import { Meal } from '../types';
 import { Coffee, Sun, Moon, ChefHat, Info, Pencil, Trash2 } from 'lucide-react';
 import { format } from 'date-fns';
@@ -152,7 +152,20 @@ export const Meals: React.FC<MealsProps> = ({ isAdmin, canEdit }) => {
       )}
 
       <div className="space-y-3">
-        {loading ? <div className="text-center text-zinc-500 py-10">Loading meals...</div> : meals.map((meal) => (
+        {loading ? (
+           Array.from({ length: 5 }).map((_, i) => (
+             <div key={i} className="bg-white dark:bg-zinc-900 p-4 rounded-xl border border-gray-100 dark:border-zinc-800 flex items-center gap-3">
+                <Skeleton className="h-10 w-10 rounded-full shrink-0" />
+                <div className="flex-1 space-y-2">
+                  <div className="flex justify-between">
+                    <Skeleton className="h-4 w-24" />
+                    <Skeleton className="h-4 w-16" />
+                  </div>
+                  <Skeleton className="h-3 w-32" />
+                </div>
+             </div>
+           ))
+        ) : meals.map((meal) => (
           <div key={meal.id} className="bg-zinc-900 p-4 rounded-xl border border-zinc-800 flex items-start gap-3 relative group">
             <div className="p-2 bg-zinc-800 rounded-full mt-1">
               <MealIcon type={meal.meal_type} />
