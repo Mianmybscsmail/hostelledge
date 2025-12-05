@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { supabase } from '../services/supabase';
-import { Card } from '../components/ui/Card';
+import { Card, Skeleton } from '../components/ui/Card';
 import { DashboardStats, WeeklyMoney, Budget, MarketItem } from '../types';
 import { TrendingUp, TrendingDown, DollarSign, PieChart as PieIcon, ShoppingBag, Utensils, Users, User } from 'lucide-react';
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip, BarChart, Bar, XAxis, YAxis } from 'recharts';
@@ -132,7 +132,49 @@ export const Dashboard = () => {
   const COLORS = ['#ef4444', '#f97316', '#eab308', '#22c55e', '#3b82f6'];
 
   if (loading) {
-    return <div className="h-[80vh] flex items-center justify-center"><div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-red-500"></div></div>;
+    return (
+      <div className="p-4 space-y-6 pt-10">
+        {/* Header Skeleton */}
+        <div className="flex justify-between items-end">
+          <div>
+            <Skeleton className="h-4 w-32 mb-2" />
+            <Skeleton className="h-10 w-48" />
+          </div>
+          <Skeleton className="h-10 w-10 rounded-lg" />
+        </div>
+
+        {/* Primary Stats Grid */}
+        <div className="grid grid-cols-2 gap-3">
+          <Skeleton className="h-24 rounded-2xl" />
+          <Skeleton className="h-24 rounded-2xl" />
+        </div>
+
+        {/* Specific Category Breakdowns */}
+        <div className="grid grid-cols-2 gap-2">
+           <Skeleton className="h-20 rounded-xl" />
+           <Skeleton className="h-20 rounded-xl" />
+           <Skeleton className="h-20 rounded-xl" />
+           <Skeleton className="h-20 rounded-xl" />
+        </div>
+
+        {/* Budgets Section */}
+        <div className="space-y-4">
+          <div className="flex justify-between items-center">
+               <Skeleton className="h-6 w-24" />
+          </div>
+          <Skeleton className="h-48 w-full rounded-2xl" />
+        </div>
+        
+        {/* Market Notes */}
+         <div className="space-y-3">
+            <Skeleton className="h-6 w-32" />
+            <div className="space-y-2">
+              <Skeleton className="h-12 w-full rounded-xl" />
+              <Skeleton className="h-12 w-full rounded-xl" />
+            </div>
+         </div>
+      </div>
+    );
   }
 
   return (
