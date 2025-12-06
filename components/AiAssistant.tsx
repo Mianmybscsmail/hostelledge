@@ -1,16 +1,16 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { supabase } from '../services/supabase';
-import { Bot, X, Send, Loader2, Sparkles, Settings, Key, Save, AlertCircle } from 'lucide-react';
+import { Bot, X, Send, Loader2, Sparkles, Settings, Key, Save, ExternalLink } from 'lucide-react';
 import { ChatMessage } from '../types';
 
-// Default fallback (likely invalid, user should update via UI)
-const DEFAULT_API_KEY = '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';
+// Removed invalid default key. Users must provide their own free key.
+const DEFAULT_API_KEY = '';
 const SITE_NAME = 'Hostel Kharcha Manager';
 
 export const AiAssistant: React.FC = () => {
   const [isOpen, setIsOpen] = useState(false);
   const [messages, setMessages] = useState<ChatMessage[]>([
-    { role: 'assistant', content: 'Hi! I am ledgeAI, created by Mian Khizar. Ask me about your hostel expenses, meals, or budgets.' }
+    { role: 'assistant', content: 'Hi! I am ledgeAI. To get started, please configure your free API Key in settings.' }
   ]);
   const [input, setInput] = useState('');
   const [loading, setLoading] = useState(false);
@@ -30,11 +30,18 @@ export const AiAssistant: React.FC = () => {
     scrollToBottom();
   }, [messages, isOpen, showSettings]);
 
+  // Open settings automatically if no key is present when chat is opened
+  useEffect(() => {
+    if (isOpen && !apiKey && !showSettings) {
+        setShowSettings(true);
+    }
+  }, [isOpen]);
+
   const handleSaveSettings = () => {
     localStorage.setItem('openrouter_key', apiKey);
     localStorage.setItem('openrouter_model', model);
     setShowSettings(false);
-    setMessages(prev => [...prev, { role: 'system', content: '✅ Settings updated successfully.' }]);
+    setMessages(prev => [...prev, { role: 'system', content: '✅ Settings updated. You can now ask questions.' }]);
   };
 
   const fetchContextData = async () => {
@@ -58,7 +65,7 @@ export const AiAssistant: React.FC = () => {
         ${expenses?.map(e => `- ${e.date.split('T')[0]}: ${e.title} (${e.category}) - PKR ${e.amount}`).join('\n')}
         
         MEAL HISTORY:
-        ${meals?.map(m => `- ${m.date.split('T')[0]}: ${m.meal_type} cooked by ${m.cooked}, Cost: ${m.cost}`).join('\n')}
+        ${meals?.map(m => `- ${m.date.split('T')[0]}: ${m.meal_type} (${m.dish_name || 'Dish'}) cooked by ${m.cooked}, Cost: ${m.cost}`).join('\n')}
         
         FRIEND TRANSACTIONS:
         ${friends?.map(f => `- ${f.name}: ${f.type === 'borrowed' ? 'Owes us' : 'Paid/Deposited'} PKR ${f.amount} (${f.status})`).join('\n')}
@@ -76,6 +83,12 @@ export const AiAssistant: React.FC = () => {
   const handleSend = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!input.trim() || loading) return;
+
+    if (!apiKey) {
+        setShowSettings(true);
+        setMessages(prev => [...prev, { role: 'system', content: '⚠️ Please enter an API Key to continue.' }]);
+        return;
+    }
 
     const userMessage = { role: 'user' as const, content: input };
     setMessages(prev => [...prev, userMessage]);
@@ -107,8 +120,6 @@ export const AiAssistant: React.FC = () => {
         Do not apologize. Do not provide extra info for unrelated queries.
       `;
 
-      // console.log("Sending request to OpenRouter...");
-
       const response = await fetch("https://openrouter.ai/api/v1/chat/completions", {
         method: "POST",
         headers: {
@@ -136,7 +147,7 @@ export const AiAssistant: React.FC = () => {
          const errorMessage = data.error?.message || `API Status: ${response.status}`;
          
          if (errorCode === 401) {
-             setMessages(prev => [...prev, { role: 'assistant', content: `⚠️ **Authentication Failed (401)**\n\nIt seems the API Key is invalid or expired. Please click the **Settings (⚙️)** icon above and update your OpenRouter API Key.` }]);
+             setMessages(prev => [...prev, { role: 'assistant', content: `⚠️ **Authentication Failed (401)**\n\nYour API Key is invalid or expired. Please update it in settings.` }]);
              setShowSettings(true);
          } else {
              setMessages(prev => [...prev, { role: 'assistant', content: `⚠️ **AI Error:** ${errorMessage}` }]);
@@ -216,6 +227,17 @@ export const AiAssistant: React.FC = () => {
           {showSettings && (
              <div className="p-4 bg-zinc-950 border-b border-zinc-800 space-y-4 animate-in slide-in-from-top-2">
                  <h4 className="text-white font-medium flex items-center gap-2"><Key size={16}/> Configure AI</h4>
+                 
+                 <div className="bg-indigo-500/10 border border-indigo-500/20 p-3 rounded-lg flex items-start gap-2">
+                    <ExternalLink size={16} className="text-indigo-400 shrink-0 mt-0.5" />
+                    <p className="text-xs text-indigo-300">
+                        You need a free API Key to use this feature. 
+                        <a href="https://openrouter.ai/keys" target="_blank" rel="noopener noreferrer" className="text-white underline font-bold ml-1 hover:text-indigo-200">
+                            Get one here
+                        </a>.
+                    </p>
+                 </div>
+
                  <div>
                     <label className="text-xs text-zinc-500 block mb-1">OpenRouter API Key</label>
                     <input 
@@ -234,7 +256,8 @@ export const AiAssistant: React.FC = () => {
                         className="w-full bg-zinc-800 border border-zinc-700 rounded-lg px-3 py-2 text-sm text-white focus:ring-1 focus:ring-indigo-500 focus:outline-none"
                     >
                         <option value="google/gemini-2.0-flash-lite-preview-02-05:free">Google Gemini 2.0 Flash Lite (Free)</option>
-                        <option value="openai/gpt-oss-20b:free">GPT OSS 20B (Free)</option>
+                        <option value="google/gemini-2.0-pro-exp-02-05:free">Google Gemini 2.0 Pro Exp (Free)</option>
+                        <option value="deepseek/deepseek-r1:free">DeepSeek R1 (Free)</option>
                         <option value="meta-llama/llama-3.2-3b-instruct:free">Llama 3.2 3B (Free)</option>
                     </select>
                  </div>
@@ -283,12 +306,13 @@ export const AiAssistant: React.FC = () => {
                     type="text"
                     value={input}
                     onChange={(e) => setInput(e.target.value)}
-                    placeholder="Ask about expenses..."
-                    className="w-full bg-zinc-800 border border-zinc-700 text-white rounded-xl py-3 pl-4 pr-12 focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition-all placeholder:text-zinc-600"
+                    placeholder={apiKey ? "Ask about expenses..." : "Please configure API Key"}
+                    disabled={!apiKey}
+                    className="w-full bg-zinc-800 border border-zinc-700 text-white rounded-xl py-3 pl-4 pr-12 focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition-all placeholder:text-zinc-600 disabled:opacity-50 disabled:cursor-not-allowed"
                 />
                 <button 
                     type="submit" 
-                    disabled={!input.trim() || loading}
+                    disabled={!input.trim() || loading || !apiKey}
                     className="absolute right-2 p-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-500 disabled:opacity-50 disabled:hover:bg-indigo-600 transition-colors"
                 >
                     <Send size={16} />
