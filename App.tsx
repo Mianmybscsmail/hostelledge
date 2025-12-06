@@ -19,6 +19,7 @@ function App() {
   const [activeTab, setActiveTab] = useState('home');
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [theme, setTheme] = useState<'dark' | 'light'>('dark');
+  const [aiEnabled, setAiEnabled] = useState(true);
   
   // Quick Add State
   const [addAmount, setAddAmount] = useState('');
@@ -49,6 +50,15 @@ function App() {
       if (session?.user) fetchUserProfile(session.user.id);
       else setUserProfile(null);
     });
+
+    // Fetch Global AI Settings
+    const fetchAiConfig = async () => {
+        const { data } = await supabase.from('app_config').select('value').eq('key', 'ai_settings').single();
+        if (data?.value) {
+            setAiEnabled(data.value.enabled);
+        }
+    };
+    fetchAiConfig();
 
     return () => subscription.unsubscribe();
   }, []);
@@ -170,8 +180,8 @@ function App() {
         </div>
       )}
 
-      {/* AI Assistant */}
-      <AiAssistant />
+      {/* AI Assistant - Only show if enabled or user is admin */}
+      {(aiEnabled || isAdmin) && <AiAssistant />}
     </>
   );
 }
