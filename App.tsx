@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 import { supabase } from './services/supabase';
 import { UserProfile } from './types';
 import { Auth } from './pages/Auth';
@@ -26,6 +26,13 @@ function App() {
   const [addTitle, setAddTitle] = useState('');
   const [addCategory, setAddCategory] = useState('Misc');
   const [isSubmitting, setIsSubmitting] = useState(false);
+
+  // Ref to access current activeTab inside useEffect closure if needed
+  const activeTabRef = useRef(activeTab);
+
+  useEffect(() => {
+    activeTabRef.current = activeTab;
+  }, [activeTab]);
 
   useEffect(() => {
     // Check local storage for theme
@@ -63,6 +70,34 @@ function App() {
     return () => subscription.unsubscribe();
   }, []);
 
+  // History API Integration
+  useEffect(() => {
+    // Push an initial state to trap the back button on load
+    window.history.pushState({ tab: 'home' }, '');
+
+    const handlePopState = (event: PopStateEvent) => {
+      // If event.state exists, it means we are navigating internally (Redo History)
+      if (event.state && event.state.tab) {
+        setActiveTab(event.state.tab);
+        setIsAddModalOpen(false); // Close modal if open when going back
+      } else {
+        // We reached the start of our history stack (no state)
+        const shouldClose = window.confirm("Do you want to close the website?");
+        if (shouldClose) {
+           // User wants to leave. We go back once more to actually exit the page context.
+           window.history.back();
+        } else {
+           // User wants to stay. We push the state back so they remain "in" the app.
+           // Restore the current view
+           window.history.pushState({ tab: activeTabRef.current }, '');
+        }
+      }
+    };
+
+    window.addEventListener('popstate', handlePopState);
+    return () => window.removeEventListener('popstate', handlePopState);
+  }, []);
+
   const toggleTheme = () => {
     const newTheme = theme === 'dark' ? 'light' : 'dark';
     setTheme(newTheme);
@@ -88,6 +123,8 @@ function App() {
       setIsAddModalOpen(true);
     } else {
       setActiveTab(tab);
+      // Push new tab to history stack
+      window.history.pushState({ tab }, '');
     }
   };
 
@@ -138,7 +175,7 @@ function App() {
            <WeeklyMenu 
               isAdmin={isAdmin} 
               canEdit={canEdit} 
-              onBack={() => setActiveTab('meals')} 
+              onBack={() => handleTabChange('meals')} 
            />
         )}
       </Layout>
