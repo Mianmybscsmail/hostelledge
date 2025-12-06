@@ -165,6 +165,13 @@ export const Meals: React.FC<MealsProps> = ({ isAdmin, canEdit, onNavigate }) =>
     }
   };
 
+  const checkAllRoom = (eatenStr: string) => {
+      if (!eatenStr || availableFriends.length === 0) return false;
+      const eaters = eatenStr.split(',').map(s => s.trim());
+      // Check if EVERY friend in availableFriends is in eaters list
+      return availableFriends.every(friend => eaters.includes(friend));
+  };
+
   return (
     <div className="p-4 space-y-4 pt-8">
       {/* Header */}
@@ -280,7 +287,7 @@ export const Meals: React.FC<MealsProps> = ({ isAdmin, canEdit, onNavigate }) =>
             <div className="flex-1">
             <div className="flex justify-between items-start">
                 <h3 className="font-medium text-gray-900 dark:text-white">
-                    {meal.dish_name ? `${meal.meal_type} - ${meal.dish_name}` : meal.meal_type}
+                    {meal.dish_name || meal.meal_type}
                 </h3>
                 <span className="text-red-500 dark:text-red-400 font-bold text-sm">PKR {meal.cost}</span>
             </div>
@@ -288,7 +295,9 @@ export const Meals: React.FC<MealsProps> = ({ isAdmin, canEdit, onNavigate }) =>
                 <span className="flex items-center gap-1"><ChefHat size={12}/> Cooked by {meal.cooked}</span>
                 <span className="text-gray-400 dark:text-zinc-500">{format(new Date(meal.date), 'MMM d, h:mm a')}</span>
                 {meal.eaten && (
-                    <span className="text-[10px] text-gray-400 dark:text-zinc-600 mt-1">Eaten by: {meal.eaten}</span>
+                    <span className="text-[10px] text-gray-400 dark:text-zinc-600 mt-1">
+                        Eaten by: {checkAllRoom(meal.eaten) ? 'all room' : meal.eaten}
+                    </span>
                 )}
             </div>
             </div>
