@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { supabase } from '../services/supabase';
 import { Card, Button, Input } from '../components/ui/Card';
 import { UserProfile } from '../types';
-import { Download, LogOut, User, ShieldAlert, Archive, Trash2, Moon, Sun, ChevronRight, Wallet, Users, FileText, ArrowLeft, CalendarDays } from 'lucide-react';
+import { Download, LogOut, User, ShieldAlert, Archive, Trash2, Moon, Sun, ChevronRight, Wallet, Users, FileText, ArrowLeft, CalendarDays, Bot, ToggleRight, ToggleLeft } from 'lucide-react';
 import { format } from 'date-fns';
 
 interface SettingsProps {
@@ -14,7 +14,7 @@ interface SettingsProps {
   onNavigate: (page: string) => void;
 }
 
-type View = 'menu' | 'users' | 'budget' | 'archive' | 'general';
+type View = 'menu' | 'users' | 'budget' | 'archive' | 'general' | 'ai-settings';
 
 export const Settings: React.FC<SettingsProps> = ({ user, profile, isAdmin, theme, toggleTheme, onNavigate }) => {
   const [currentView, setCurrentView] = useState<View>('menu');
@@ -95,6 +95,14 @@ export const Settings: React.FC<SettingsProps> = ({ user, profile, isAdmin, them
              />
 
              <MenuItem 
+                icon={<Bot size={18} />} 
+                color="text-indigo-500" 
+                bg="bg-indigo-100 dark:bg-indigo-900/20"
+                label="AI Assistant" 
+                onClick={() => setCurrentView('ai-settings')} 
+             />
+
+             <MenuItem 
                 icon={<Archive size={18} />} 
                 color="text-orange-500" 
                 bg="bg-orange-100 dark:bg-orange-900/20"
@@ -141,6 +149,7 @@ export const Settings: React.FC<SettingsProps> = ({ user, profile, isAdmin, them
                 {currentView === 'budget' && 'Weekly Budget'}
                 {currentView === 'archive' && 'Archive Center'}
                 {currentView === 'general' && 'General Settings'}
+                {currentView === 'ai-settings' && 'AI Assistant'}
             </h2>
         </div>
 
@@ -148,6 +157,7 @@ export const Settings: React.FC<SettingsProps> = ({ user, profile, isAdmin, them
         {currentView === 'budget' && <BudgetView />}
         {currentView === 'archive' && <ArchiveView />}
         {currentView === 'general' && <GeneralView />}
+        {currentView === 'ai-settings' && <AiSettingsView />}
     </div>
   );
 };
@@ -306,6 +316,48 @@ const ArchiveView = () => {
                 <Button variant="primary" onClick={resetWeek} isLoading={loading} className="bg-red-600 hover:bg-red-700 w-full">
                     Archive & Start New Week
                 </Button>
+            </div>
+        </Card>
+    );
+};
+
+const AiSettingsView = () => {
+    const [enabled, setEnabled] = useState(true);
+    const [loading, setLoading] = useState(true);
+
+    useEffect(() => {
+        const fetchConfig = async () => {
+            const { data } = await supabase.from('app_config').select('value').eq('key', 'ai_settings').single();
+            if (data?.value) {
+                setEnabled(data.value.enabled);
+            }
+            setLoading(false);
+        };
+        fetchConfig();
+    }, []);
+
+    const toggleAi = async () => {
+        const newState = !enabled;
+        setEnabled(newState);
+        await supabase.from('app_config').upsert({ key: 'ai_settings', value: { enabled: newState } });
+    };
+
+    return (
+        <Card title="AI Assistant Visibility">
+            <div className="flex justify-between items-center py-2">
+                <div>
+                    <h3 className="text-gray-900 dark:text-white font-medium">Enable for Users</h3>
+                    <p className="text-xs text-gray-500 dark:text-zinc-500">
+                        {enabled ? 'AI Chat is visible to everyone.' : 'AI Chat is hidden for non-admin users.'}
+                    </p>
+                </div>
+                <button 
+                    onClick={toggleAi} 
+                    disabled={loading}
+                    className={`text-4xl transition-colors ${enabled ? 'text-green-500' : 'text-gray-400 dark:text-zinc-600'}`}
+                >
+                    {enabled ? <ToggleRight size={48} /> : <ToggleLeft size={48} />}
+                </button>
             </div>
         </Card>
     );
