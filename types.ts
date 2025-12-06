@@ -48,6 +48,7 @@ export interface FriendTransaction {
 export interface Meal {
   id: string;
   meal_type: 'Breakfast' | 'Lunch' | 'Dinner';
+  dish_name?: string;
   cooked: string;
   eaten: string; // Stored as comma separated string or user IDs
   cost: number;
