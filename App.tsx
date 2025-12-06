@@ -9,7 +9,7 @@ import { Friends } from './pages/Friends';
 import { Settings } from './pages/Settings';
 import { WeeklyMenu } from './pages/WeeklyMenu';
 import { Layout } from './components/ui/Layout';
-import { X } from 'lucide-react';
+import { X, LogOut } from 'lucide-react';
 import { Input, Button, Select } from './components/ui/Card';
 import { AiAssistant } from './components/AiAssistant';
 
@@ -18,6 +18,7 @@ function App() {
   const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
   const [activeTab, setActiveTab] = useState('home');
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
+  const [showExitConfirmation, setShowExitConfirmation] = useState(false);
   const [theme, setTheme] = useState<'dark' | 'light'>('dark');
   const [aiEnabled, setAiEnabled] = useState(true);
   
@@ -80,23 +81,27 @@ function App() {
       if (event.state && event.state.tab) {
         setActiveTab(event.state.tab);
         setIsAddModalOpen(false); // Close modal if open when going back
+        setShowExitConfirmation(false);
       } else {
         // We reached the start of our history stack (no state)
-        const shouldClose = window.confirm("Do you want to close the website?");
-        if (shouldClose) {
-           // User wants to leave. We go back once more to actually exit the page context.
-           window.history.back();
-        } else {
-           // User wants to stay. We push the state back so they remain "in" the app.
-           // Restore the current view
-           window.history.pushState({ tab: activeTabRef.current }, '');
-        }
+        // Show custom themed modal
+        setShowExitConfirmation(true);
       }
     };
 
     window.addEventListener('popstate', handlePopState);
     return () => window.removeEventListener('popstate', handlePopState);
   }, []);
+
+  const handleExitConfirm = () => {
+     window.history.back();
+  };
+
+  const handleExitCancel = () => {
+     // User wants to stay. We push the state back so they remain "in" the app.
+     window.history.pushState({ tab: activeTabRef.current }, '');
+     setShowExitConfirmation(false);
+  };
 
   const toggleTheme = () => {
     const newTheme = theme === 'dark' ? 'light' : 'dark';
@@ -213,6 +218,25 @@ function App() {
                    {isSubmitting ? 'Saving...' : 'Add Expense'}
                  </Button>
               </form>
+           </div>
+        </div>
+      )}
+
+      {/* Exit Confirmation Modal */}
+      {showExitConfirmation && (
+        <div className="fixed inset-0 z-[70] flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 animate-in fade-in duration-200">
+           <div className="w-full max-w-xs bg-white dark:bg-zinc-900 border border-gray-200 dark:border-zinc-800 rounded-2xl p-6 shadow-2xl scale-100 animate-in zoom-in-95 duration-200">
+              <div className="flex flex-col items-center text-center">
+                  <div className="w-12 h-12 rounded-full bg-red-100 dark:bg-red-900/20 flex items-center justify-center mb-3 text-red-600 dark:text-red-500">
+                      <LogOut size={24} />
+                  </div>
+                  <h2 className="text-lg font-bold text-gray-900 dark:text-white mb-1">Exit App?</h2>
+                  <p className="text-sm text-gray-500 dark:text-zinc-400 mb-6">Do you want to close the app?</p>
+                  <div className="grid grid-cols-2 gap-3 w-full">
+                     <Button variant="secondary" onClick={handleExitCancel} className="w-full justify-center">Cancel</Button>
+                     <Button variant="primary" onClick={handleExitConfirm} className="w-full justify-center bg-red-600 hover:bg-red-700 text-white">Close</Button>
+                  </div>
+              </div>
            </div>
         </div>
       )}
