@@ -1,10 +1,10 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { supabase } from '../services/supabase';
-import { Bot, X, Send, Loader2, Sparkles, MessageSquare } from 'lucide-react';
+import { Bot, X, Send, Loader2, Sparkles, Settings, Key, Save, AlertCircle } from 'lucide-react';
 import { ChatMessage } from '../types';
 
-const OPENROUTER_API_KEY = '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';
-const SITE_URL = 'https://hostelledge.vercel.app/'; // Update with your actual URL
+// Default fallback (likely invalid, user should update via UI)
+const DEFAULT_API_KEY = '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';
 const SITE_NAME = 'Hostel Kharcha Manager';
 
 export const AiAssistant: React.FC = () => {
@@ -14,6 +14,12 @@ export const AiAssistant: React.FC = () => {
   ]);
   const [input, setInput] = useState('');
   const [loading, setLoading] = useState(false);
+  
+  // Settings State
+  const [showSettings, setShowSettings] = useState(false);
+  const [apiKey, setApiKey] = useState(() => localStorage.getItem('openrouter_key') || DEFAULT_API_KEY);
+  const [model, setModel] = useState(() => localStorage.getItem('openrouter_model') || 'openai/gpt-oss-120b:free');
+  
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   const scrollToBottom = () => {
@@ -22,7 +28,14 @@ export const AiAssistant: React.FC = () => {
 
   useEffect(() => {
     scrollToBottom();
-  }, [messages, isOpen]);
+  }, [messages, isOpen, showSettings]);
+
+  const handleSaveSettings = () => {
+    localStorage.setItem('openrouter_key', apiKey);
+    localStorage.setItem('openrouter_model', model);
+    setShowSettings(false);
+    setMessages(prev => [...prev, { role: 'system', content: '✅ Settings updated successfully.' }]);
+  };
 
   const fetchContextData = async () => {
     try {
@@ -94,18 +107,18 @@ export const AiAssistant: React.FC = () => {
         Do not apologize. Do not provide extra info for unrelated queries.
       `;
 
-      console.log("Sending request to OpenRouter...");
+      // console.log("Sending request to OpenRouter...");
 
       const response = await fetch("https://openrouter.ai/api/v1/chat/completions", {
         method: "POST",
         headers: {
-          "Authorization": `Bearer ${OPENROUTER_API_KEY}`,
-          "HTTP-Referer": SITE_URL,
+          "Authorization": `Bearer ${apiKey}`,
+          "HTTP-Referer": window.location.href,
           "X-Title": SITE_NAME,
           "Content-Type": "application/json"
         },
         body: JSON.stringify({
-          "model": "openai/gpt-oss-20b:free", //google/gemma-3n-e2b-it:free
+          "model": model, 
           "messages": [
             { "role": "system", "content": systemPrompt },
             ...messages.filter(m => m.role !== 'system'),
@@ -119,8 +132,15 @@ export const AiAssistant: React.FC = () => {
       // Robust Error Handling
       if (!response.ok || data.error) {
          console.error("OpenRouter API Error Full Log:", JSON.stringify(data));
+         const errorCode = data.error?.code || response.status;
          const errorMessage = data.error?.message || `API Status: ${response.status}`;
-         setMessages(prev => [...prev, { role: 'assistant', content: `⚠️ **AI Error:** ${errorMessage}\n\n*Check the console for full details.*` }]);
+         
+         if (errorCode === 401) {
+             setMessages(prev => [...prev, { role: 'assistant', content: `⚠️ **Authentication Failed (401)**\n\nIt seems the API Key is invalid or expired. Please click the **Settings (⚙️)** icon above and update your OpenRouter API Key.` }]);
+             setShowSettings(true);
+         } else {
+             setMessages(prev => [...prev, { role: 'assistant', content: `⚠️ **AI Error:** ${errorMessage}` }]);
+         }
       } else if (data.choices && data.choices.length > 0) {
         const aiResponse = data.choices[0].message.content;
         setMessages(prev => [...prev, { role: 'assistant', content: aiResponse }]);
@@ -182,10 +202,47 @@ export const AiAssistant: React.FC = () => {
                     <p className="text-[10px] text-zinc-400">Created by Mian Khizar</p>
                 </div>
             </div>
-            <button onClick={() => setIsOpen(false)} className="p-2 text-zinc-400 hover:text-white hover:bg-zinc-800 rounded-lg transition-colors">
-                <X size={20} />
-            </button>
+            <div className="flex gap-1">
+                <button onClick={() => setShowSettings(!showSettings)} className="p-2 text-zinc-400 hover:text-white hover:bg-zinc-800 rounded-lg transition-colors">
+                    <Settings size={20} />
+                </button>
+                <button onClick={() => setIsOpen(false)} className="p-2 text-zinc-400 hover:text-white hover:bg-zinc-800 rounded-lg transition-colors">
+                    <X size={20} />
+                </button>
+            </div>
           </div>
+
+          {/* Settings View */}
+          {showSettings && (
+             <div className="p-4 bg-zinc-950 border-b border-zinc-800 space-y-4 animate-in slide-in-from-top-2">
+                 <h4 className="text-white font-medium flex items-center gap-2"><Key size={16}/> Configure AI</h4>
+                 <div>
+                    <label className="text-xs text-zinc-500 block mb-1">OpenRouter API Key</label>
+                    <input 
+                        type="password" 
+                        value={apiKey} 
+                        onChange={(e) => setApiKey(e.target.value)}
+                        placeholder="sk-or-..."
+                        className="w-full bg-zinc-800 border border-zinc-700 rounded-lg px-3 py-2 text-sm text-white focus:ring-1 focus:ring-indigo-500 focus:outline-none"
+                    />
+                 </div>
+                 <div>
+                    <label className="text-xs text-zinc-500 block mb-1">Model</label>
+                    <select 
+                        value={model} 
+                        onChange={(e) => setModel(e.target.value)}
+                        className="w-full bg-zinc-800 border border-zinc-700 rounded-lg px-3 py-2 text-sm text-white focus:ring-1 focus:ring-indigo-500 focus:outline-none"
+                    >
+                        <option value="google/gemini-2.0-flash-lite-preview-02-05:free">Google Gemini 2.0 Flash Lite (Free)</option>
+                        <option value="openai/gpt-oss-20b:free">GPT OSS 20B (Free)</option>
+                        <option value="meta-llama/llama-3.2-3b-instruct:free">Llama 3.2 3B (Free)</option>
+                    </select>
+                 </div>
+                 <button onClick={handleSaveSettings} className="w-full bg-indigo-600 hover:bg-indigo-500 text-white py-2 rounded-lg text-sm font-medium flex items-center justify-center gap-2">
+                    <Save size={14} /> Save Configuration
+                 </button>
+             </div>
+          )}
 
           {/* Messages Area */}
           <div className="flex-1 overflow-y-auto p-4 space-y-4 scrollbar-hide">
@@ -195,6 +252,8 @@ export const AiAssistant: React.FC = () => {
                   className={`max-w-[85%] p-3 rounded-2xl text-sm ${
                     msg.role === 'user' 
                       ? 'bg-indigo-600 text-white rounded-br-none' 
+                      : msg.role === 'system'
+                      ? 'bg-zinc-800/50 text-zinc-500 border border-dashed border-zinc-700 text-center w-full italic'
                       : 'bg-zinc-800 text-zinc-300 rounded-bl-none border border-zinc-700'
                   }`}
                 >
