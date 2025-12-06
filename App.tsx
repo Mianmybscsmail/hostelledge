@@ -230,8 +230,8 @@ function App() {
                   <div className="w-12 h-12 rounded-full bg-red-100 dark:bg-red-900/20 flex items-center justify-center mb-3 text-red-600 dark:text-red-500">
                       <LogOut size={24} />
                   </div>
-                  <h2 className="text-lg font-bold text-gray-900 dark:text-white mb-1">Exit App?</h2>
-                  <p className="text-sm text-gray-500 dark:text-zinc-400 mb-6">Do you want to close the app?</p>
+                  <h2 className="text-lg font-bold text-gray-900 dark:text-white mb-1">Alert</h2>
+                  <p className="text-sm text-gray-500 dark:text-zinc-400 mb-6">Do you want to close app</p>
                   <div className="grid grid-cols-2 gap-3 w-full">
                      <Button variant="secondary" onClick={handleExitCancel} className="w-full justify-center">Cancel</Button>
                      <Button variant="primary" onClick={handleExitConfirm} className="w-full justify-center bg-red-600 hover:bg-red-700 text-white">Close</Button>
