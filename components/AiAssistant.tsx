@@ -1,24 +1,20 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { supabase } from '../services/supabase';
-import { Bot, X, Send, Loader2, Sparkles, Settings, Key, Save, ExternalLink } from 'lucide-react';
+import { Bot, X, Send, Loader2, Sparkles } from 'lucide-react';
 import { ChatMessage } from '../types';
 
-// Removed invalid default key. Users must provide their own free key.
-const DEFAULT_API_KEY = '';
+// Hardcoded Configuration as requested
+const API_KEY = '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';
+const MODEL = 'openai/gpt-oss-120b:free';
 const SITE_NAME = 'Hostel Kharcha Manager';
 
 export const AiAssistant: React.FC = () => {
   const [isOpen, setIsOpen] = useState(false);
   const [messages, setMessages] = useState<ChatMessage[]>([
-    { role: 'assistant', content: 'Hi! I am ledgeAI. To get started, please configure your free API Key in settings.' }
+    { role: 'assistant', content: 'Hi! I am ledgeAI. I can help you with expense tracking and database queries.' }
   ]);
   const [input, setInput] = useState('');
   const [loading, setLoading] = useState(false);
-  
-  // Settings State
-  const [showSettings, setShowSettings] = useState(false);
-  const [apiKey, setApiKey] = useState(() => localStorage.getItem('openrouter_key') || DEFAULT_API_KEY);
-  const [model, setModel] = useState(() => localStorage.getItem('openrouter_model') || 'openai/gpt-oss-120b:free');
   
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
@@ -28,25 +24,11 @@ export const AiAssistant: React.FC = () => {
 
   useEffect(() => {
     scrollToBottom();
-  }, [messages, isOpen, showSettings]);
-
-  // Open settings automatically if no key is present when chat is opened
-  useEffect(() => {
-    if (isOpen && !apiKey && !showSettings) {
-        setShowSettings(true);
-    }
-  }, [isOpen]);
-
-  const handleSaveSettings = () => {
-    localStorage.setItem('openrouter_key', apiKey);
-    localStorage.setItem('openrouter_model', model);
-    setShowSettings(false);
-    setMessages(prev => [...prev, { role: 'system', content: '✅ Settings updated. You can now ask questions.' }]);
-  };
+  }, [messages, isOpen]);
 
   const fetchContextData = async () => {
     try {
-      const { data: expenses } = await supabase.from('expenses').select('*').limit(50);
+      const { data: expenses } = await supabase.from('expenses').select('*').limit(30);
       const { data: meals } = await supabase.from('meals').select('*').limit(20);
       const { data: friends } = await supabase.from('friends').select('*');
       const { data: budgets } = await supabase.from('budgets').select('*');
@@ -84,12 +66,6 @@ export const AiAssistant: React.FC = () => {
     e.preventDefault();
     if (!input.trim() || loading) return;
 
-    if (!apiKey) {
-        setShowSettings(true);
-        setMessages(prev => [...prev, { role: 'system', content: '⚠️ Please enter an API Key to continue.' }]);
-        return;
-    }
-
     const userMessage = { role: 'user' as const, content: input };
     setMessages(prev => [...prev, userMessage]);
     setInput('');
@@ -123,13 +99,13 @@ export const AiAssistant: React.FC = () => {
       const response = await fetch("https://openrouter.ai/api/v1/chat/completions", {
         method: "POST",
         headers: {
-          "Authorization": `Bearer ${apiKey}`,
+          "Authorization": `Bearer ${API_KEY}`,
           "HTTP-Referer": window.location.href,
           "X-Title": SITE_NAME,
           "Content-Type": "application/json"
         },
         body: JSON.stringify({
-          "model": model, 
+          "model": MODEL, 
           "messages": [
             { "role": "system", "content": systemPrompt },
             ...messages.filter(m => m.role !== 'system'),
@@ -140,28 +116,21 @@ export const AiAssistant: React.FC = () => {
 
       const data = await response.json();
       
-      // Robust Error Handling
+      // Error Handling
       if (!response.ok || data.error) {
-         console.error("OpenRouter API Error Full Log:", JSON.stringify(data));
-         const errorCode = data.error?.code || response.status;
+         console.error("OpenRouter API Error:", data);
          const errorMessage = data.error?.message || `API Status: ${response.status}`;
-         
-         if (errorCode === 401) {
-             setMessages(prev => [...prev, { role: 'assistant', content: `⚠️ **Authentication Failed (401)**\n\nYour API Key is invalid or expired. Please update it in settings.` }]);
-             setShowSettings(true);
-         } else {
-             setMessages(prev => [...prev, { role: 'assistant', content: `⚠️ **AI Error:** ${errorMessage}` }]);
-         }
+         setMessages(prev => [...prev, { role: 'assistant', content: `⚠️ **AI Error:** ${errorMessage}` }]);
       } else if (data.choices && data.choices.length > 0) {
         const aiResponse = data.choices[0].message.content;
         setMessages(prev => [...prev, { role: 'assistant', content: aiResponse }]);
       } else {
-        setMessages(prev => [...prev, { role: 'assistant', content: "Sorry, I couldn't connect to the server (No response)." }]);
+        setMessages(prev => [...prev, { role: 'assistant', content: "Sorry, I couldn't connect to the server." }]);
       }
 
     } catch (error) {
-      console.error("Network/Fetch Error:", error);
-      setMessages(prev => [...prev, { role: 'assistant', content: "Network error processing request. Please check your internet connection." }]);
+      console.error("Network Error:", error);
+      setMessages(prev => [...prev, { role: 'assistant', content: "Network error processing request." }]);
     } finally {
       setLoading(false);
     }
@@ -213,59 +182,10 @@ export const AiAssistant: React.FC = () => {
                     <p className="text-[10px] text-zinc-400">Created by Mian Khizar</p>
                 </div>
             </div>
-            <div className="flex gap-1">
-                <button onClick={() => setShowSettings(!showSettings)} className="p-2 text-zinc-400 hover:text-white hover:bg-zinc-800 rounded-lg transition-colors">
-                    <Settings size={20} />
-                </button>
-                <button onClick={() => setIsOpen(false)} className="p-2 text-zinc-400 hover:text-white hover:bg-zinc-800 rounded-lg transition-colors">
-                    <X size={20} />
-                </button>
-            </div>
+            <button onClick={() => setIsOpen(false)} className="p-2 text-zinc-400 hover:text-white hover:bg-zinc-800 rounded-lg transition-colors">
+                <X size={20} />
+            </button>
           </div>
-
-          {/* Settings View */}
-          {showSettings && (
-             <div className="p-4 bg-zinc-950 border-b border-zinc-800 space-y-4 animate-in slide-in-from-top-2">
-                 <h4 className="text-white font-medium flex items-center gap-2"><Key size={16}/> Configure AI</h4>
-                 
-                 <div className="bg-indigo-500/10 border border-indigo-500/20 p-3 rounded-lg flex items-start gap-2">
-                    <ExternalLink size={16} className="text-indigo-400 shrink-0 mt-0.5" />
-                    <p className="text-xs text-indigo-300">
-                        You need a free API Key to use this feature. 
-                        <a href="https://openrouter.ai/keys" target="_blank" rel="noopener noreferrer" className="text-white underline font-bold ml-1 hover:text-indigo-200">
-                            Get one here
-                        </a>.
-                    </p>
-                 </div>
-
-                 <div>
-                    <label className="text-xs text-zinc-500 block mb-1">OpenRouter API Key</label>
-                    <input 
-                        type="password" 
-                        value={apiKey} 
-                        onChange={(e) => setApiKey(e.target.value)}
-                        placeholder="sk-or-..."
-                        className="w-full bg-zinc-800 border border-zinc-700 rounded-lg px-3 py-2 text-sm text-white focus:ring-1 focus:ring-indigo-500 focus:outline-none"
-                    />
-                 </div>
-                 <div>
-                    <label className="text-xs text-zinc-500 block mb-1">Model</label>
-                    <select 
-                        value={model} 
-                        onChange={(e) => setModel(e.target.value)}
-                        className="w-full bg-zinc-800 border border-zinc-700 rounded-lg px-3 py-2 text-sm text-white focus:ring-1 focus:ring-indigo-500 focus:outline-none"
-                    >
-                        <option value="google/gemini-2.0-flash-lite-preview-02-05:free">Google Gemini 2.0 Flash Lite (Free)</option>
-                        <option value="google/gemini-2.0-pro-exp-02-05:free">Google Gemini 2.0 Pro Exp (Free)</option>
-                        <option value="deepseek/deepseek-r1:free">DeepSeek R1 (Free)</option>
-                        <option value="meta-llama/llama-3.2-3b-instruct:free">Llama 3.2 3B (Free)</option>
-                    </select>
-                 </div>
-                 <button onClick={handleSaveSettings} className="w-full bg-indigo-600 hover:bg-indigo-500 text-white py-2 rounded-lg text-sm font-medium flex items-center justify-center gap-2">
-                    <Save size={14} /> Save Configuration
-                 </button>
-             </div>
-          )}
 
           {/* Messages Area */}
           <div className="flex-1 overflow-y-auto p-4 space-y-4 scrollbar-hide">
@@ -275,8 +195,6 @@ export const AiAssistant: React.FC = () => {
                   className={`max-w-[85%] p-3 rounded-2xl text-sm ${
                     msg.role === 'user' 
                       ? 'bg-indigo-600 text-white rounded-br-none' 
-                      : msg.role === 'system'
-                      ? 'bg-zinc-800/50 text-zinc-500 border border-dashed border-zinc-700 text-center w-full italic'
                       : 'bg-zinc-800 text-zinc-300 rounded-bl-none border border-zinc-700'
                   }`}
                 >
@@ -306,20 +224,16 @@ export const AiAssistant: React.FC = () => {
                     type="text"
                     value={input}
                     onChange={(e) => setInput(e.target.value)}
-                    placeholder={apiKey ? "Ask about expenses..." : "Please configure API Key"}
-                    disabled={!apiKey}
-                    className="w-full bg-zinc-800 border border-zinc-700 text-white rounded-xl py-3 pl-4 pr-12 focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition-all placeholder:text-zinc-600 disabled:opacity-50 disabled:cursor-not-allowed"
+                    placeholder="Ask about expenses..."
+                    className="w-full bg-zinc-800 border border-zinc-700 text-white rounded-xl py-3 pl-4 pr-12 focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition-all placeholder:text-zinc-600"
                 />
                 <button 
                     type="submit" 
-                    disabled={!input.trim() || loading || !apiKey}
+                    disabled={!input.trim() || loading}
                     className="absolute right-2 p-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-500 disabled:opacity-50 disabled:hover:bg-indigo-600 transition-colors"
                 >
                     <Send size={16} />
                 </button>
-            </div>
-            <div className="text-center mt-2">
-                <p className="text-[9px] text-zinc-600">AI can make mistakes. Check important info.</p>
             </div>
           </form>
         </div>
