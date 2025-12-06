@@ -98,7 +98,7 @@ export const Market: React.FC<MarketProps> = ({ isAdmin, canEdit }) => {
   return (
     <div className="p-4 space-y-4 pt-8">
       <div className="flex justify-between items-center mb-4">
-        <h1 className="text-2xl font-bold text-white">Market & Shopping</h1>
+        <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Market & Shopping</h1>
         {(isAdmin || canEdit) && (
              <button onClick={toggleForm} className="text-red-500 text-sm font-medium">
              {showAdd ? 'Cancel' : '+ Purchase'}
@@ -108,7 +108,7 @@ export const Market: React.FC<MarketProps> = ({ isAdmin, canEdit }) => {
 
       {showAdd && (
         <Card className="animate-in slide-in-from-top-4 mb-6">
-          <h3 className="text-white font-semibold mb-3">{editingId ? 'Edit Item' : 'New Purchase'}</h3>
+          <h3 className="text-gray-900 dark:text-white font-semibold mb-3">{editingId ? 'Edit Item' : 'New Purchase'}</h3>
           <form onSubmit={handleAdd} className="space-y-3">
             <Input label="Item Name" value={itemName} onChange={e => setItemName(e.target.value)} required />
             <div className="grid grid-cols-2 gap-3">
@@ -117,8 +117,8 @@ export const Market: React.FC<MarketProps> = ({ isAdmin, canEdit }) => {
             </div>
             <Input label="Buyer" value={buyer} onChange={e => setBuyer(e.target.value)} required />
             
-            <div className="pt-2 border-t border-zinc-800">
-                <p className="text-xs text-zinc-500 mb-2">Budgeting (Optional)</p>
+            <div className="pt-2 border-t border-gray-100 dark:border-zinc-800">
+                <p className="text-xs text-gray-500 dark:text-zinc-500 mb-2">Budgeting (Optional)</p>
                 <div className="grid grid-cols-2 gap-3">
                     <Input label="Budget Limit" type="number" value={budget} onChange={e => setBudget(e.target.value)} placeholder="0" />
                     <Input label="Note" value={note} onChange={e => setNote(e.target.value)} placeholder="e.g. For BBQ" />
@@ -150,24 +150,24 @@ export const Market: React.FC<MarketProps> = ({ isAdmin, canEdit }) => {
              </div>
            ))
         ) : items.map((item) => (
-          <div key={item.id} className="bg-zinc-900 p-4 rounded-xl border border-zinc-800 flex flex-col gap-2 relative group">
+          <div key={item.id} className="bg-white dark:bg-zinc-900 p-4 rounded-xl border border-gray-200 dark:border-zinc-800 flex flex-col gap-2 relative group shadow-sm">
             <div className="flex justify-between items-start">
               <div className="flex items-center gap-3">
-                <div className="bg-purple-500/10 p-2 rounded-lg text-purple-500">
+                <div className="bg-purple-100 dark:bg-purple-500/10 p-2 rounded-lg text-purple-600 dark:text-purple-500">
                     <ShoppingCart size={18} />
                 </div>
                 <div>
-                    <h3 className="font-medium text-white">{item.item_name}</h3>
-                    <p className="text-xs text-zinc-500">{item.quantity} • Bought by {item.buyer}</p>
+                    <h3 className="font-medium text-gray-900 dark:text-white">{item.item_name}</h3>
+                    <p className="text-xs text-gray-500 dark:text-zinc-500">{item.quantity} • Bought by {item.buyer}</p>
                 </div>
               </div>
-              <span className="text-white font-bold">PKR {item.cost}</span>
+              <span className="text-gray-900 dark:text-white font-bold">PKR {item.cost}</span>
             </div>
             
             {(item.budget_per_item || item.note) && (
-                <div className="mt-2 bg-zinc-950 p-2 rounded-lg border border-zinc-800 flex flex-col gap-1 text-xs">
+                <div className="mt-2 bg-gray-50 dark:bg-zinc-950 p-2 rounded-lg border border-gray-200 dark:border-zinc-800 flex flex-col gap-1 text-xs">
                     {item.budget_per_item && item.budget_per_item > 0 && (
-                        <div className="flex justify-between text-zinc-400">
+                        <div className="flex justify-between text-gray-500 dark:text-zinc-400">
                             <span>Budget: {item.budget_per_item}</span>
                             <span className={item.cost > item.budget_per_item ? 'text-red-500' : 'text-green-500'}>
                                 {item.cost > item.budget_per_item ? 'Over Budget' : 'Within Budget'}
@@ -175,30 +175,30 @@ export const Market: React.FC<MarketProps> = ({ isAdmin, canEdit }) => {
                         </div>
                     )}
                     {item.note && (
-                        <div className="flex items-start gap-1 text-zinc-500 italic">
+                        <div className="flex items-start gap-1 text-gray-500 dark:text-zinc-500 italic">
                             <Tag size={10} className="mt-0.5" /> {item.note}
                         </div>
                     )}
                 </div>
             )}
-            <div className="text-[10px] text-zinc-600 text-right mt-1">
+            <div className="text-[10px] text-gray-500 dark:text-zinc-600 text-right mt-1">
                 {format(new Date(item.date), 'MMM d, yyyy')}
             </div>
 
             {/* Actions */}
             {(isAdmin || canEdit) && (
-                <div className="flex gap-3 absolute right-4 bottom-4 opacity-0 group-hover:opacity-100 transition-opacity bg-zinc-900/90 p-1 rounded backdrop-blur-sm">
-                   <button onClick={() => startEdit(item)} className="text-zinc-400 hover:text-blue-400">
+                <div className="flex gap-3 absolute right-4 bottom-4 opacity-0 group-hover:opacity-100 transition-opacity bg-white/90 dark:bg-zinc-900/90 p-1 rounded backdrop-blur-sm shadow-sm">
+                   <button onClick={() => startEdit(item)} className="text-gray-400 dark:text-zinc-400 hover:text-blue-500 dark:hover:text-blue-400">
                       <Pencil size={14} />
                    </button>
-                   <button onClick={() => handleDelete(item.id)} className="text-zinc-400 hover:text-red-500">
+                   <button onClick={() => handleDelete(item.id)} className="text-gray-400 dark:text-zinc-400 hover:text-red-500">
                       <Trash2 size={14} />
                    </button>
                 </div>
             )}
           </div>
         ))}
-        {!loading && items.length === 0 && <div className="text-center text-zinc-600 py-8">No market purchases yet.</div>}
+        {!loading && items.length === 0 && <div className="text-center text-gray-500 dark:text-zinc-600 py-8">No market purchases yet.</div>}
       </div>
     </div>
   );
